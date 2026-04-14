@@ -1,0 +1,112 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.6'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.diffplug.spotless' version '6.25.0'
+}
+
+group = 'com.kgu'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	//Swagger
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+
+	//DataBase
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	//lombok
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	//jwt
+	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+	implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.3'
+	implementation 'com.fasterxml.jackson.core:jackson-core:2.17.3'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.3'
+
+	// 채팅 구현
+	implementation 'org.springframework.boot:spring-boot-starter-websocket' // WebSocket
+	implementation 'org.springframework.boot:spring-boot-starter-amqp' // RabbitMQ와 같은 외부 메시지 브로커 사용
+	implementation 'org.springframework:spring-messaging' // @MessageMapping 기능처럼 메시지 처리 기능
+	implementation 'org.springframework.boot:spring-boot-starter-reactor-netty:3.0.0' // 서버 <-> RabbitMQ의 비동기 네트워크 처리
+
+	//alram
+	implementation 'com.google.firebase:firebase-admin:9.2.0'
+
+	//sns
+	implementation 'net.nurigo:sdk:4.2.7'
+
+}
+
+// Spotless 설정 (코드 스타일 자동 정리 도구)
+spotless {
+	java {
+		googleJavaFormat()           // 구글 자바 포맷 스타일 적용
+		removeUnusedImports()        // 사용하지 않는 import 제거
+		importOrder('java', 'javax', 'org.springframework', '', 'com.kgu')  // import 순서
+		trimTrailingWhitespace()     // 줄 끝 공백 제거
+		endWithNewline()             // 파일 끝에 빈 줄 추가
+		indentWithSpaces(4)          // 공백 4칸 들여쓰기
+	}
+}
+
+// Git Hook 자동 복사 Task (커밋 전에 자동 실행되는 스크립트)
+tasks.register('copyGitHook', Copy) {
+	from new File(rootProject.rootDir, 'scripts/pre-commit')
+	into new File(rootProject.rootDir, '.git/hooks')
+}
+
+// Git Hook 권한 설정 Task (chmod +x)
+tasks.register('chmodGitHook', Exec) {
+	commandLine 'chmod', '+x', '.git/hooks/pre-commit'
+	dependsOn 'copyGitHook'
+}
+
+// Git Hook 전체 설정 Task
+tasks.register('updateGitHooks') {
+	dependsOn 'copyGitHook', 'chmodGitHook'
+}
+
+// 컴파일 시 Spotless + Git Hook 적용
+tasks.named('compileJava') {
+	dependsOn 'spotlessApply'
+	dependsOn 'updateGitHooks'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+bootJar {
+	archiveFileName = "app.jar"
+}

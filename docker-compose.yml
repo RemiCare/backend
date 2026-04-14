@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0.33
+    restart: always
+    container_name: lifeline-watch-mysql-container
+    ports:
+      - 33306:3306
+    environment:
+      - MYSQL_DATABASE=lifeline-watch
+      - MYSQL_ROOT_PASSWORD=${DOCKER_DB_PASS}
+      - TZ=Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: lifeline-rabbitmq
+    restart: always
+    ports:
+      - 5672:5672       # AMQP
+      - 15672:15672     # 관리 콘솔 (http://localhost:15672)
+      - 61613:61613     # STOMP
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    command: >
+      bash -c "
+      rabbitmq-plugins enable --offline rabbitmq_management &&
+      rabbitmq-plugins enable --offline rabbitmq_stomp &&
+      rabbitmq-plugins enable --offline rabbitmq_web_stomp &&
+      rabbitmq-plugins enable --offline rabbitmq_web_stomp_examples &&
+      rabbitmq-server
+      "
+
+volumes:
+  rabbitmq-data:
