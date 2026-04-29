@@ -2,6 +2,7 @@ package com.kgu.life_watch.domain.user.service;
 
 import java.util.List;
 
+import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,5 +148,19 @@ public class UserService {
     return elderlyProfileRepository.findAllBySocialWorkerProfileId(socialWorkerProfileId).stream()
         .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
         .toList();
+  }
+
+  @Transactional
+  public void updateWearableConnectionStatus(Long userId, WearableConnectionRequest request) {
+    User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+
+    // 노인 프로필 가져와서 상태 업데이트
+    ElderlyProfile profile = user.getElderlyProfile();
+    if (profile != null) {
+      profile.updateWearableConnection(request.isConnected(), request.deviceName());
+    } else {
+      throw new IllegalArgumentException("노인 프로필이 존재하지 않습니다.");
+    }
   }
 }
