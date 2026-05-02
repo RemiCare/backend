@@ -2,7 +2,6 @@ package com.kgu.life_watch.domain.user.service;
 
 import java.util.List;
 
-import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +14,7 @@ import com.kgu.life_watch.domain.chat.entity.mapping.ChatParticipation;
 import com.kgu.life_watch.domain.chat.repository.ChatRoomRepository;
 import com.kgu.life_watch.domain.chat.service.ChatParticipationService;
 import com.kgu.life_watch.domain.chat.service.ChatRoomService;
+import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
@@ -152,7 +152,9 @@ public class UserService {
 
   @Transactional
   public void updateWearableConnectionStatus(Long userId, WearableConnectionRequest request) {
-    User user = userRepository.findById(userId)
+    User user =
+        userRepository
+            .findById(userId)
             .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
 
     // 노인 프로필 가져와서 상태 업데이트

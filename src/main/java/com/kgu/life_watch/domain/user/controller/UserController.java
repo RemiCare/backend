@@ -1,7 +1,5 @@
 package com.kgu.life_watch.domain.user.controller;
 
-import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 import com.kgu.life_watch.domain.auth.dto.request.UserUpdateRequest;
 import com.kgu.life_watch.domain.user.dto.request.ElderlyAssignmentRequest;
+import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
 import com.kgu.life_watch.domain.user.entity.User;
@@ -92,12 +91,11 @@ public class UserController {
   @PatchMapping("/profile/wearable-connection")
   @Operation(summary = "웨어러블 기기 연결 상태 업데이트", description = "스마트워치 등의 웨어러블 기기 연결 상태를 수동으로 변경합니다.")
   public ApiResponse<Void> updateWearableConnection(
-          @AuthenticationPrincipal CustomUserDetails userDetails,
-          @RequestBody @Valid WearableConnectionRequest request) {
+      @AuthenticationPrincipal CustomUserDetails userDetails,
+      @RequestBody @Valid WearableConnectionRequest request) {
 
     userService.updateWearableConnectionStatus(userDetails.user().getId(), request);
 
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
-
 }
