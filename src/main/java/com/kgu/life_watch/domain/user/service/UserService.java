@@ -14,6 +14,7 @@ import com.kgu.life_watch.domain.chat.entity.mapping.ChatParticipation;
 import com.kgu.life_watch.domain.chat.repository.ChatRoomRepository;
 import com.kgu.life_watch.domain.chat.service.ChatParticipationService;
 import com.kgu.life_watch.domain.chat.service.ChatRoomService;
+import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
@@ -147,5 +148,21 @@ public class UserService {
     return elderlyProfileRepository.findAllBySocialWorkerProfileId(socialWorkerProfileId).stream()
         .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
         .toList();
+  }
+
+  @Transactional
+  public void updateWearableConnectionStatus(Long userId, WearableConnectionRequest request) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+
+    // 노인 프로필 가져와서 상태 업데이트
+    ElderlyProfile profile = user.getElderlyProfile();
+    if (profile != null) {
+      profile.updateWearableConnection(request.isConnected(), request.deviceName());
+    } else {
+      throw new IllegalArgumentException("노인 프로필이 존재하지 않습니다.");
+    }
   }
 }
