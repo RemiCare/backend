@@ -35,6 +35,10 @@ public enum ErrorCode {
   // web socket
   CHAT_SEND_FAILED(HttpStatus.BAD_REQUEST, "채팅 메시지 전송에 실패하였습니다."),
 
+  // Schedule
+  SCHEDULE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 일정을 찾을 수 없습니다."),
+  INVALID_SCHEDULE_TIME(HttpStatus.BAD_REQUEST, "유효하지 않은 일정 시간입니다."),
+
   // auth
   MEMBER_JOIN_REQUIRED(HttpStatus.MULTIPLE_CHOICES, "회원가입이 필요합니다."),
   TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, "토큰을 찾을 수 없습니다."),
