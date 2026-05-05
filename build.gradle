@@ -86,10 +86,16 @@ tasks.register('copyGitHook', Copy) {
 	into new File(rootProject.rootDir, '.git/hooks')
 }
 
-// Git Hook 권한 설정 Task (chmod +x)
+// Git Hook 권한 설정 Task (chmod +x) - 윈도우 환경 예외 처리 추가
 tasks.register('chmodGitHook', Exec) {
-	commandLine 'chmod', '+x', '.git/hooks/pre-commit'
 	dependsOn 'copyGitHook'
+
+	def osName = System.getProperty("os.name").toLowerCase()
+	if (osName.contains("windows")) {
+		commandLine 'cmd', '/c', 'echo', 'Windows OS detected: skipping chmod for git hooks.'
+	} else {
+		commandLine 'chmod', '+x', '.git/hooks/pre-commit'
+	}
 }
 
 // Git Hook 전체 설정 Task

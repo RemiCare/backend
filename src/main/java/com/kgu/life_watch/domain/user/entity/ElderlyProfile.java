@@ -49,4 +49,19 @@ public class ElderlyProfile {
       this.protectorContact = protectorContact;
     }
   }
+
+  //웨어러블 연결 상태 ( 기본값 :false )
+  @Column(name = "is_wearable_connected")
+  @Builder.Default
+  private boolean isWearableConnected = false;
+
+  // 연결된 웨어러블 기기 이름 (어떤 워치인지 표시)
+  @Column(name = "wearable_device_name")
+  private String wearableDeviceName;
+
+  // 웨어러블 연결 상태를 변경하는 비즈니스 메서드
+  public void updateWearableConnection(boolean isConnected, String deviceName) {
+    this.isWearableConnected = isConnected;
+    this.wearableDeviceName = deviceName;
+  }
 }
