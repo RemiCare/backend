@@ -82,7 +82,11 @@ public class SecurityConfig {
     configuration.setAllowedOrigins(
         Arrays.asList(
             "http://localhost:3000",
+            "http://localhost:3001",
             "http://localhost:8080",
+            "http://192.168.1.102:3000",
+            "http://192.168.1.102:3001",
+            "http://192.168.1.102:8080",
             "https://jiangxy.github.io",
             "https://server.lifewatch.store",
             "https://dqm6a810qt4d9.cloudfront.net",
