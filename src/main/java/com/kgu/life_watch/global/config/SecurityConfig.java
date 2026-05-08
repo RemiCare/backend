@@ -4,6 +4,8 @@ import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+// 워치 데이터 가져올때 필요한 보안 예외 추가
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -62,6 +64,10 @@ public class SecurityConfig {
                         "/health/**",
                         "/chat/**",
                         "/ws-chat/**")
+                    .permitAll()
+
+                    // 모바일 앱 Health Connect 동기화 API 허용
+                    .requestMatchers(HttpMethod.POST, "/api/health/sync")
                     .permitAll()
                     .requestMatchers("/api/auth/**", "/api/alert/**")
                     .permitAll() // 로그인과 회원가입은 인증 없이 접근 가능
