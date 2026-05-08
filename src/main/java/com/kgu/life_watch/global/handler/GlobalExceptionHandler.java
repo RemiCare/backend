@@ -67,8 +67,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     // 첫 번째 발생한 검증 오류 메시지를 가져오기
     String message = ex.getBindingResult().getAllErrors().get(0).getDefaultMessage();
 
-    // 오류 메시지로부터 ErrorCode를 찾기
+    // 오류 메시지로부터 ErrorCode를 찾기 (없으면 기본값 INVALID_PARAMETER 사용)
     ErrorCode errorCode = ErrorCode.fromMessage(message);
+    if (errorCode == ErrorCode.INTERNAL_SEVER_ERROR) { // fromMessage에서 매핑 실패 시 반환되는 기본값 확인 필요
+      // 매핑 실패 시 에러 메시지를 직접 전달하는 ApiResponse 생성
+      ApiResponse<Void> apiResponse = new ApiResponse<>(400, message);
+      return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+    }
 
     logInfo(
         "POST",

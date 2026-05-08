@@ -68,6 +68,11 @@ public class ApiResponse<T> {
     this.status = new Status(errorCode);
   }
 
+  // 커스텀 코드와 메시지를 위한 생성자
+  public ApiResponse(int code, String message) {
+    this.status = new Status(code, message);
+  }
+
   // 커스텀 예외 생성자
   public ApiResponse(LifelineException exception) {
     this.status = new Status(exception.getErrorCode());
@@ -104,6 +109,11 @@ public class ApiResponse<T> {
     public Status(ErrorCode errorCode) {
       this.code = errorCode.getStatus().value();
       this.message = errorCode.getMessage();
+    }
+
+    public Status(int code, String message) {
+      this.code = code;
+      this.message = message;
     }
 
     public Status(SuccessCode successCode) {
