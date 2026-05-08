@@ -8,6 +8,12 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Getter
 public enum ErrorCode {
+  // health
+  HEALTH_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "생체 데이터를 찾을 수 없습니다."),
+  HEALTH_DATA_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "생체 데이터 저장에 실패하였습니다."),
+  HEALTH_DATA_UPDATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "생체 데이터 수정에 실패하였습니다."),
+  HEALTH_DATA_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "생체 데이터 삭제에 실패하였습니다."),
+
   // user
   MEMBER_NOT_AUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인하지 않은 사용자입니다"),
   MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자 정보가 존재하지 않습니다"),
