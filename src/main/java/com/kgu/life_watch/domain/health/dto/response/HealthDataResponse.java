@@ -1,34 +1,38 @@
 package com.kgu.life_watch.domain.health.dto.response;
 
-import java.time.LocalDateTime;
+public class HealthDataResponse {
 
-import com.kgu.life_watch.domain.health.entity.HealthData;
+  private boolean success;
+  private String message;
 
-public record HealthDataResponse(
-    Long id,
-    Long userId,
-    LocalDateTime measuredAt,
-    String deviceName,
-    Integer heartRate,
-    Integer stepCount,
-    Integer bloodOxygen,
-    Integer totalSleepMinutes,
-    Integer awakeMinutes,
-    String rawData
-) {
+  public HealthDataResponse() {}
 
-  public static HealthDataResponse from(HealthData healthData) {
-    return new HealthDataResponse(
-        healthData.getId(),
-        healthData.getUser().getId(),
-        healthData.getMeasuredAt(),
-        healthData.getDeviceName(),
-        healthData.getHeartRate(),
-        healthData.getStepCount(),
-        healthData.getBloodOxygen(),
-        healthData.getTotalSleepMinutes(),
-        healthData.getAwakeMinutes(),
-        healthData.getRawData()
-    );
+  public HealthDataResponse(boolean success, String message) {
+    this.success = success;
+    this.message = message;
+  }
+
+  public static HealthDataResponse success(String message) {
+    return new HealthDataResponse(true, message);
+  }
+
+  public static HealthDataResponse fail(String message) {
+    return new HealthDataResponse(false, message);
+  }
+
+  public boolean isSuccess() {
+    return success;
+  }
+
+  public String getMessage() {
+    return message;
+  }
+
+  public void setSuccess(boolean success) {
+    this.success = success;
+  }
+
+  public void setMessage(String message) {
+    this.message = message;
   }
 }

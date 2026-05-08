@@ -1,39 +1,138 @@
 package com.kgu.life_watch.domain.health.dto.request;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+public class WatchHealthDataRequest {
 
-public record GalaxyWatchHealthDataRequest(
-    @NotNull(message = "측정 시간은 필수입니다.")
-    LocalDateTime measuredAt,
+  private Long userId;
 
-    String deviceName,
+  private String currentDate;
+  private Long currentSteps;
+  private Integer currentHeartRate;
+  private String currentHeartRateTime;
+  private String lastUpdatedAt;
 
-    @Min(value = 0, message = "심박수는 0 이상이어야 합니다.")
-    @Max(value = 250, message = "심박수가 너무 큽니다.")
-    Integer heartRate,
+  private List<DailyHealthRow> dailyRows;
 
-    @Min(value = 0, message = "걸음 수는 0 이상이어야 합니다.")
-    Integer stepCount,
+  public static class DailyHealthRow {
+    private String date;
+    private Long stepsTotal;
+    private Integer heartRateMin;
+    private Integer heartRateMax;
+    private Integer heartRateAvg;
+    private Long sleepMinutes;
+    private Double sleepHours;
 
-    @Min(value = 0, message = "혈중산소는 0 이상이어야 합니다.")
-    @Max(value = 100, message = "혈중산소는 100 이하여야 합니다.")
-    Integer bloodOxygen,
+    public String getDate() {
+      return date;
+    }
 
-    @Min(value = 0, message = "총 수면 시간은 0 이상이어야 합니다.")
-    Integer totalSleepMinutes,
+    public Long getStepsTotal() {
+      return stepsTotal;
+    }
 
-    @Min(value = 0, message = "깨어있는 시간은 0 이상이어야 합니다.")
-    Integer awakeMinutes,
+    public Integer getHeartRateMin() {
+      return heartRateMin;
+    }
 
-    LocalDateTime sleepStartedAt,
+    public Integer getHeartRateMax() {
+      return heartRateMax;
+    }
 
-    LocalDateTime sleepEndedAt,
+    public Integer getHeartRateAvg() {
+      return heartRateAvg;
+    }
 
-    Map<String, Object> rawData
-) {
+    public Long getSleepMinutes() {
+      return sleepMinutes;
+    }
+
+    public Double getSleepHours() {
+      return sleepHours;
+    }
+
+    public void setDate(String date) {
+      this.date = date;
+    }
+
+    public void setStepsTotal(Long stepsTotal) {
+      this.stepsTotal = stepsTotal;
+    }
+
+    public void setHeartRateMin(Integer heartRateMin) {
+      this.heartRateMin = heartRateMin;
+    }
+
+    public void setHeartRateMax(Integer heartRateMax) {
+      this.heartRateMax = heartRateMax;
+    }
+
+    public void setHeartRateAvg(Integer heartRateAvg) {
+      this.heartRateAvg = heartRateAvg;
+    }
+
+    public void setSleepMinutes(Long sleepMinutes) {
+      this.sleepMinutes = sleepMinutes;
+    }
+
+    public void setSleepHours(Double sleepHours) {
+      this.sleepHours = sleepHours;
+    }
+  }
+
+  public Long getUserId() {
+    return userId;
+  }
+
+  public String getCurrentDate() {
+    return currentDate;
+  }
+
+  public Long getCurrentSteps() {
+    return currentSteps;
+  }
+
+  public Integer getCurrentHeartRate() {
+    return currentHeartRate;
+  }
+
+  public String getCurrentHeartRateTime() {
+    return currentHeartRateTime;
+  }
+
+  public String getLastUpdatedAt() {
+    return lastUpdatedAt;
+  }
+
+  public List<DailyHealthRow> getDailyRows() {
+    return dailyRows;
+  }
+
+  public void setUserId(Long userId) {
+    this.userId = userId;
+  }
+
+  public void setCurrentDate(String currentDate) {
+    this.currentDate = currentDate;
+  }
+
+  public void setCurrentSteps(Long currentSteps) {
+    this.currentSteps = currentSteps;
+  }
+
+  public void setCurrentHeartRate(Integer currentHeartRate) {
+    this.currentHeartRate = currentHeartRate;
+  }
+
+  public void setCurrentHeartRateTime(String currentHeartRateTime) {
+    this.currentHeartRateTime = currentHeartRateTime;
+  }
+
+  public void setLastUpdatedAt(String lastUpdatedAt) {
+    this.lastUpdatedAt = lastUpdatedAt;
+  }
+
+  public void setDailyRows(List<DailyHealthRow> dailyRows) {
+    this.dailyRows = dailyRows;
+  }
 }

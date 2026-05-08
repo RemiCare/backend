@@ -1,6 +1,6 @@
 package com.kgu.life_watch.domain.health.repository;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,23 +10,7 @@ import com.kgu.life_watch.domain.health.entity.HealthData;
 
 public interface HealthDataRepository extends JpaRepository<HealthData, Long> {
 
-  Optional<HealthData> findTopByUserIdOrderByMeasuredAtDesc(Long userId);
+  Optional<HealthData> findByUserIdAndRecordDate(Long userId, LocalDate recordDate);
 
-  List<HealthData> findAllByUserIdOrderByMeasuredAtDesc(Long userId);
-
-  List<HealthData> findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-      Long userId,
-      LocalDateTime from,
-      LocalDateTime to
-  );
-
-  List<HealthData> findAllByUserIdAndMeasuredAtAfterOrderByMeasuredAtDesc(
-      Long userId,
-      LocalDateTime from
-  );
-
-  List<HealthData> findAllByUserIdAndMeasuredAtBeforeOrderByMeasuredAtDesc(
-      Long userId,
-      LocalDateTime to
-  );
+  List<HealthData> findByUserIdOrderByRecordDateDesc(Long userId);
 }

@@ -1,137 +1,96 @@
 package com.kgu.life_watch.domain.health.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.format.DateTimeFormatter;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-
-import com.kgu.life_watch.domain.health.dto.request.GalaxyWatchHealthDataRequest;
-import com.kgu.life_watch.domain.health.dto.response.HealthDataResponse;
+import com.kgu.life_watch.domain.health.dto.request.WatchHealthDataRequest;
 import com.kgu.life_watch.domain.health.entity.HealthData;
 import com.kgu.life_watch.domain.health.repository.HealthDataRepository;
-import com.kgu.life_watch.domain.notification.validator.ElderlyAssignmentValidator;
-import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
-import com.kgu.life_watch.domain.user.entity.User;
-import com.kgu.life_watch.domain.user.repository.UserRepository;
-import com.kgu.life_watch.global.exception.ErrorCode;
-import com.kgu.life_watch.global.exception.LifelineException;
 
 @Service
-@RequiredArgsConstructor
 public class HealthDataService {
 
   private final HealthDataRepository healthDataRepository;
-  private final UserRepository userRepository;
-  private final ElderlyAssignmentValidator elderlyAssignmentValidator;
-  private final ObjectMapper objectMapper;
+
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+  public HealthDataService(HealthDataRepository healthDataRepository) {
+    this.healthDataRepository = healthDataRepository;
+  }
 
   @Transactional
-  public HealthDataResponse saveGalaxyWatchData(Long userId, GalaxyWatchHealthDataRequest request) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+  public void syncHealthData(WatchHealthDataRequest request) {
+    Long userId = request.getUserId();
 
-    if (user.getRole() != User.Role.USER) {
-      throw LifelineException.from(ErrorCode.NOT_ENOUGH_PERMISSION);
+    if (userId == null) {
+      throw new IllegalArgumentException("userId is required");
     }
 
-    ElderlyProfile elderlyProfile = user.getElderlyProfile();
+    LocalDate currentDate = parseDate(request.getCurrentDate());
+    LocalDateTime currentHeartRateTime = parseDateTimeOrNull(request.getCurrentHeartRateTime());
+    LocalDateTime lastUpdatedAt = parseDateTimeOrNow(request.getLastUpdatedAt());
 
-    if (elderlyProfile == null) {
-      throw LifelineException.from(ErrorCode.MEMBER_NOT_FOUND);
+    if (request.getDailyRows() == null) {
+      return;
     }
 
-    if (request.deviceName() != null && !request.deviceName().isBlank()) {
-      elderlyProfile.updateWearableConnection(true, request.deviceName());
+    for (WatchHealthDataRequest.DailyHealthRow row : request.getDailyRows()) {
+      LocalDate recordDate = parseDate(row.getDate());
+
+      HealthData healthData =
+          healthDataRepository
+              .findByUserIdAndRecordDate(userId, recordDate)
+              .orElseGet(
+                  () -> {
+                    HealthData newData = new HealthData();
+                    newData.setUserId(userId);
+                    newData.setRecordDate(recordDate);
+                    return newData;
+                  });
+
+      healthData.updateDailyData(
+          row.getStepsTotal(),
+          row.getHeartRateMin(),
+          row.getHeartRateMax(),
+          row.getHeartRateAvg(),
+          row.getSleepMinutes(),
+          row.getSleepHours(),
+          lastUpdatedAt);
+
+      if (recordDate.equals(currentDate)) {
+        healthData.updateCurrentHeartRate(request.getCurrentHeartRate(), currentHeartRateTime);
+      }
+
+      healthDataRepository.save(healthData);
+    }
+  }
+
+  private LocalDate parseDate(String value) {
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException("날짜가 필요합니다.");
     }
 
-    HealthData healthData =
-        HealthData.builder()
-            .user(user)
-            .measuredAt(request.measuredAt())
-            .deviceName(request.deviceName())
-            .heartRate(request.heartRate())
-            .stepCount(request.stepCount())
-            .bloodOxygen(request.bloodOxygen())
-            .totalSleepMinutes(request.totalSleepMinutes())
-            .awakeMinutes(request.awakeMinutes())
-            .rawData(convertRawDataToString(request))
-            .build();
-
-    HealthData savedHealthData = healthDataRepository.save(healthData);
-
-    return HealthDataResponse.from(savedHealthData);
+    return LocalDate.parse(value);
   }
 
-  @Transactional(readOnly = true)
-  public HealthDataResponse getMyLatestHealthData(Long userId) {
-    return healthDataRepository
-        .findTopByUserIdOrderByMeasuredAtDesc(userId)
-        .map(HealthDataResponse::from)
-        .orElseThrow(() -> LifelineException.from(ErrorCode.HEALTH_DATA_NOT_FOUND));
-  }
-
-  @Transactional(readOnly = true)
-  public List<HealthDataResponse> getMyHealthDataList(
-      Long userId,
-      LocalDateTime from,
-      LocalDateTime to
-  ) {
-    List<HealthData> healthDataList;
-
-    if (from != null && to != null) {
-      healthDataList =
-          healthDataRepository.findAllByUserIdAndMeasuredAtBetweenOrderByMeasuredAtDesc(
-              userId,
-              from,
-              to
-          );
-    } else if (from != null) {
-      healthDataList =
-          healthDataRepository.findAllByUserIdAndMeasuredAtAfterOrderByMeasuredAtDesc(
-              userId,
-              from
-          );
-    } else if (to != null) {
-      healthDataList =
-          healthDataRepository.findAllByUserIdAndMeasuredAtBeforeOrderByMeasuredAtDesc(
-              userId,
-              to
-          );
-    } else {
-      healthDataList = healthDataRepository.findAllByUserIdOrderByMeasuredAtDesc(userId);
-    }
-
-    return healthDataList.stream()
-        .map(HealthDataResponse::from)
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public HealthDataResponse getElderlyLatestHealthData(User socialWorker, Long elderlyId) {
-    ElderlyProfile elderlyProfile = elderlyAssignmentValidator.validate(socialWorker, elderlyId);
-
-    return healthDataRepository
-        .findTopByUserIdOrderByMeasuredAtDesc(elderlyProfile.getUser().getId())
-        .map(HealthDataResponse::from)
-        .orElseThrow(() -> LifelineException.from(ErrorCode.HEALTH_DATA_NOT_FOUND));
-  }
-
-  private String convertRawDataToString(GalaxyWatchHealthDataRequest request) {
-    if (request.rawData() == null) {
+  private LocalDateTime parseDateTimeOrNull(String value) {
+    if (value == null || value.isBlank()) {
       return null;
     }
 
-    try {
-      return objectMapper.writeValueAsString(request.rawData());
-    } catch (JsonProcessingException e) {
-      throw LifelineException.from(ErrorCode.INVALID_REQUEST);
+    return LocalDateTime.parse(value, DATE_TIME_FORMATTER);
+  }
+
+  private LocalDateTime parseDateTimeOrNow(String value) {
+    if (value == null || value.isBlank()) {
+      return LocalDateTime.now();
     }
+
+    return LocalDateTime.parse(value, DATE_TIME_FORMATTER);
   }
 }

@@ -50,7 +50,7 @@ public class ElderlyProfile {
     }
   }
 
-  //웨어러블 연결 상태 ( 기본값 :false )
+  // 웨어러블 연결 상태 ( 기본값 :false )
   @Column(name = "is_wearable_connected")
   @Builder.Default
   private boolean isWearableConnected = false;
