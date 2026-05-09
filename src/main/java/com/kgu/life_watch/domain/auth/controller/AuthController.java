@@ -7,9 +7,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import com.kgu.life_watch.domain.auth.dto.request.*;
-import com.kgu.life_watch.domain.auth.dto.response.LoginResponse;
+import com.kgu.life_watch.domain.auth.dto.response.*;
 import com.kgu.life_watch.domain.auth.service.AuthService;
 import com.kgu.life_watch.global.domain.SuccessCode;
 import com.kgu.life_watch.global.dto.response.ApiResponse;
@@ -19,6 +20,7 @@ import com.kgu.life_watch.global.security.CustomUserDetails;
 @RequiredArgsConstructor
 @RequestMapping("/api/auth")
 @Tag(name = "AuthController", description = "인증 관련 API")
+@Slf4j
 public class AuthController {
 
   private final AuthService authService;
@@ -27,14 +29,15 @@ public class AuthController {
   @Operation(summary = "노인 회원가입 API", description = "노인 회원가입 API입니다.")
   public ApiResponse<Void> signUp(@Valid @RequestBody ElderlySignUpRequest request) {
     authService.signUpElderly(request);
+    log.info("[✅SUCCESS] - 어르신 회원가입 완료: 아이디={}, 이름={}", request.loginId(), request.name());
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 
-  @PostMapping("/signup/social-worker")
-  @Operation(summary = "사회복지사 회원가입 API", description = "사회복지사 회원가입 API입니다.")
-  public ApiResponse<Void> signUpSocialWorker(
-      @Valid @RequestBody SocialWorkerSignUpRequest request) {
-    authService.signUpSocialWorker(request);
+  @PostMapping("/signup/protector")
+  @Operation(summary = "보호자 회원가입 API", description = "보호자 회원가입 API입니다.")
+  public ApiResponse<Void> signUpProtector(@Valid @RequestBody ProtectorSignUpRequest request) {
+    authService.signUpProtector(request);
+    log.info("[✅SUCCESS] - 보호자 회원가입 완료: 아이디={}, 이름={}", request.loginId(), request.name());
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 
@@ -42,6 +45,16 @@ public class AuthController {
   @Operation(summary = "로그인 API", description = "로그인 API입니다.")
   public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
     LoginResponse response = authService.login(request);
+    log.info("[✅SUCCESS] - 로그인 성공: 아이디={}", request.loginId());
+    return new ApiResponse<>(response);
+  }
+
+  @PostMapping("/login/elder")
+  @Operation(summary = "노인 코드 로그인 API", description = "노인용 고유 코드로 로그인합니다.")
+  public ApiResponse<LoginResponse> loginElder(@RequestBody java.util.Map<String, String> request) {
+    String loginCode = request.get("loginCode");
+    LoginResponse response = authService.loginByCode(loginCode);
+    log.info("[✅SUCCESS] - 노인 로그인 성공: 코드={}", loginCode);
     return new ApiResponse<>(response);
   }
 
@@ -58,6 +71,15 @@ public class AuthController {
   @Operation(summary = "아이디+전화번호 본인 확인", description = "아이디와 전화번호가 일치하는 사용자가 존재하는지 확인합니다.")
   public ApiResponse<Void> verifyIdentity(@RequestBody IdentityVerificationRequest request) {
     authService.verifyIdentity(request.loginId(), request.phoneNumber());
+    return new ApiResponse<>(SuccessCode.REQUEST_OK);
+  }
+
+  @GetMapping("/check-duplicate")
+  @Operation(summary = "중복 체크 API", description = "아이디 또는 전화번호 중복 여부를 확인합니다.")
+  public ApiResponse<Void> checkDuplicate(
+      @RequestParam(required = false) String loginId,
+      @RequestParam(required = false) String phoneNumber) {
+    authService.checkDuplicate(loginId, phoneNumber);
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 }

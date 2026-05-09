@@ -42,8 +42,8 @@ public class UserController {
   public ApiResponse<String> checkRole(@AuthenticationPrincipal CustomUserDetails userDetails) {
     User user = userDetails.user();
 
-    if (user.getRole() == User.Role.SOCIAL_WORKER) {
-      return new ApiResponse<>("사회복지사입니다.");
+    if (user.getRole() == User.Role.PROTECTOR) {
+      return new ApiResponse<>("보호자입니다.");
     } else if (user.getRole() == User.Role.USER) {
       return new ApiResponse<>("일반 사용자입니다.");
     }
@@ -54,7 +54,7 @@ public class UserController {
   @PostMapping("/assign-elderly")
   @Operation(summary = "노인 할당 API", description = "담당 노인을 할당하는 API입니다.")
   public ApiResponse<Void> assignElderly(@RequestBody @Valid ElderlyAssignmentRequest request) {
-    userService.assignElderly(request.elderlyId(), request.socialWorkerId());
+    userService.assignElderly(request.elderlyId(), request.protectorId());
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 
@@ -62,7 +62,7 @@ public class UserController {
   @PostMapping("/unassign-elderly")
   @Operation(summary = "노인 할당 해제 API", description = "담당 노인 할당을 해제 API입니다.")
   public ApiResponse<Void> unassignElderly(@RequestBody @Valid ElderlyAssignmentRequest request) {
-    userService.unassignElderly(request.elderlyId(), request.socialWorkerId());
+    userService.unassignElderly(request.elderlyId(), request.protectorId());
     return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 
@@ -76,13 +76,13 @@ public class UserController {
   }
 
   @GetMapping("/elderly/assignable")
-  @Operation(summary = "할당 가능한 노인 목록 조회", description = "아직 어떤 사회복지사와도 연결되지 않은 노인 목록 조회")
+  @Operation(summary = "할당 가능한 노인 목록 조회", description = "아직 어떤 보호자와도 연결되지 않은 노인 목록 조회")
   public ApiResponse<ElderlySimpleInfoResponse> getAssignableElderlyList() {
     return new ApiResponse<>(userService.getAssignableElderlyList());
   }
 
   @GetMapping("/elderly/assigned")
-  @Operation(summary = "내가 담당 중인 노인 목록 조회", description = "로그인한 사회복지사가 담당 중인 노인 목록 조회")
+  @Operation(summary = "내가 담당 중인 노인 목록 조회", description = "로그인한 보호자가 담당 중인 노인 목록 조회")
   public ApiResponse<ElderlySimpleInfoResponse> getAssignedElderlyList(
       @AuthenticationPrincipal CustomUserDetails userDetails) {
     return new ApiResponse<>(userService.getAssignedElderlyList(userDetails.user()));

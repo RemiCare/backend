@@ -53,16 +53,20 @@ public class User extends BaseEntity {
   @Column(name = "fcm_token")
   private String fcmToken;
 
+  @Column(unique = true, length = 10)
+  private String loginCode;
+
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
   private ElderlyProfile elderlyProfile;
 
   @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-  private SocialWorkerProfile socialWorkerProfile;
+  private ProtectorProfile protectorProfile;
 
   public enum Role {
     USER,
     ADMIN,
-    SOCIAL_WORKER
+    PROTECTOR,
+    ELDER
   }
 
   public void setElderlyProfile(ElderlyProfile elderlyProfile) {
@@ -70,9 +74,9 @@ public class User extends BaseEntity {
     elderlyProfile.setUser(this);
   }
 
-  public void setSocialWorkerProfile(SocialWorkerProfile socialWorkerProfile) {
-    this.socialWorkerProfile = socialWorkerProfile;
-    socialWorkerProfile.setUser(this);
+  public void setProtectorProfile(ProtectorProfile protectorProfile) {
+    this.protectorProfile = protectorProfile;
+    protectorProfile.setUser(this);
   }
 
   public void changePassword(String newPassword) {
@@ -89,5 +93,9 @@ public class User extends BaseEntity {
     this.name = name;
     this.phoneNumber = phoneNumber;
     this.address = address;
+  }
+
+  public void updateLoginCode(String loginCode) {
+    this.loginCode = loginCode;
   }
 }

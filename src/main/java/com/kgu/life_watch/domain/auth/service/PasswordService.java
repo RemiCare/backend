@@ -21,6 +21,9 @@ public class PasswordService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final AuthSmsService authSmsService;
+  private final EmailService emailService;
+  private final com.kgu.life_watch.domain.auth.repository.SmsVerificationRepository
+      smsVerificationRepository;
 
   @Transactional
   public void changePassword(PasswordChangeRequest request, User userFromPrincipal) {
@@ -50,7 +53,15 @@ public class PasswordService {
         .findByLoginIdAndPhoneNumber(request.loginId(), request.phoneNumber())
         .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    authSmsService.sendAuthenticationCode(request.phoneNumber());
+    // 6자리 랜덤 코드 생성
+    String code = String.valueOf((int) ((Math.random() * 899999) + 100000));
+
+    // 이메일 발송 (loginId가 이메일임)
+    emailService.sendEmailCode(request.loginId(), code);
+
+    // 검증을 위해 DB 저장 (기존 SmsVerificationRepository 활용)
+    smsVerificationRepository.save(
+        new com.kgu.life_watch.domain.auth.entity.SmsVerification(request.loginId(), code));
   }
 
   @Transactional
@@ -60,7 +71,7 @@ public class PasswordService {
             .findByLoginId(request.loginId())
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    if (!authSmsService.verifyCode(user.getPhoneNumber(), request.verificationCode())) {
+    if (!authSmsService.verifyCode(request.loginId(), request.verificationCode())) {
       throw LifelineException.from(ErrorCode.SMS_VERIFICATION_FAILED);
     }
 

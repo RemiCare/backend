@@ -11,7 +11,7 @@ import com.kgu.life_watch.domain.notification.entity.MedicineAlarm;
 import com.kgu.life_watch.domain.notification.entity.NotificationLog;
 import com.kgu.life_watch.domain.notification.repository.NotificationLogRepository;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
-import com.kgu.life_watch.domain.user.entity.SocialWorkerProfile;
+import com.kgu.life_watch.domain.user.entity.ProtectorProfile;
 import com.kgu.life_watch.domain.user.repository.ElderlyProfileRepository;
 import com.kgu.life_watch.global.exception.ErrorCode;
 import com.kgu.life_watch.global.exception.LifelineException;
@@ -36,30 +36,49 @@ public class FirebaseMessageService {
             .findByUserId(elderlyId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    SocialWorkerProfile socialWorker = elderly.getSocialWorkerProfile();
-    if (socialWorker == null || socialWorker.getUser().getFcmToken() == null) {
-      throw LifelineException.from(ErrorCode.FCM_TOKEN_NOT_FOUND);
-    }
-
     String name = elderly.getUser().getName();
-    String title = "응급상황 - " + name;
-    String body = "대상자: " + name + "\n" + "응급상황 발생\n" + explanation;
+    String title = "응급상황 발생 - " + name;
+    String body = "응급상황이 감지되었습니다.\n" + explanation;
 
-    Message message =
-        Message.builder()
-            .putData("title", title)
-            .putData("body", body)
-            .putData("elderlyId", String.valueOf(elderly.getUser().getId()))
-            .putData("elderlyName", name)
-            .setToken(socialWorker.getUser().getFcmToken())
-            .build();
-
-    try {
-      FirebaseMessaging.getInstance().send(message);
-      notificationLogRepository.save(NotificationLog.of(elderlyId, label, explanation));
-    } catch (FirebaseMessagingException e) {
-      throw LifelineException.from(ErrorCode.FCM_SEND_FAILED);
+    // 1. 보호자에게 알림 전송
+    ProtectorProfile protector = elderly.getProtectorProfile();
+    if (protector != null && protector.getUser().getFcmToken() != null) {
+      Message protectorMessage =
+          Message.builder()
+              .putData("title", title)
+              .putData("body", "대상자: " + name + "\n" + body)
+              .putData("elderlyId", String.valueOf(elderly.getUser().getId()))
+              .putData("elderlyName", name)
+              .setToken(protector.getUser().getFcmToken())
+              .build();
+      try {
+        FirebaseMessaging.getInstance().send(protectorMessage);
+      } catch (FirebaseMessagingException e) {
+        log.error("보호자에게 FCM 전송 실패: {}", e.getMessage());
+      }
     }
+
+    // 2. 노인 본인(워치/앱)에게 알림 전송
+    if (elderly.getUser().getFcmToken() != null) {
+      Message elderlyMessage =
+          Message.builder()
+              .putData("title", "응급 감지 알림")
+              .putData("body", "도움이 필요하신가요?\n" + explanation)
+              .setNotification(
+                  Notification.builder()
+                      .setTitle("응급 감지 알림")
+                      .setBody("도움이 필요하신가요?\n" + explanation)
+                      .build())
+              .setToken(elderly.getUser().getFcmToken())
+              .build();
+      try {
+        FirebaseMessaging.getInstance().send(elderlyMessage);
+      } catch (FirebaseMessagingException e) {
+        log.error("노인 본인에게 FCM 전송 실패: {}", e.getMessage());
+      }
+    }
+
+    notificationLogRepository.save(NotificationLog.of(elderlyId, label, explanation));
   }
 
   private boolean isAbnormal(String label) {
@@ -105,28 +124,32 @@ public class FirebaseMessageService {
             .findByUserId(alarm.getUser().getId())
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    SocialWorkerProfile worker = elderly.getSocialWorkerProfile();
-    if (worker == null || worker.getUser() == null || worker.getUser().getFcmToken() == null) {
-      throw LifelineException.from(ErrorCode.FCM_TOKEN_NOT_FOUND);
+    ProtectorProfile protector = elderly.getProtectorProfile();
+    if (protector == null
+        || protector.getUser() == null
+        || protector.getUser().getFcmToken() == null) {
+      // 보호자 토큰이 없어도 노인에게는 보냈으므로 로그만 남김
+      log.warn("보호자 FCM 토큰이 없어 알람을 보내지 못했습니다.");
+      return;
     }
 
     String name = elderly.getUser().getName();
-    String workerFcm = worker.getUser().getFcmToken();
-    String workerBody = "대상자: " + name + "\n" + "약 복용 알림\n" + baseBody;
+    String protectorFcm = protector.getUser().getFcmToken();
+    String protectorBody = "대상자: " + name + "\n" + "약 복용 알림\n" + baseBody;
 
-    Message workerMessage =
+    Message protectorMessage =
         Message.builder()
-            .putData("title", "복지 대상자 약 복용 알림")
-            .putData("body", workerBody)
+            .putData("title", "보호 대상자 약 복용 알림")
+            .putData("body", protectorBody)
             .putData("elderlyId", String.valueOf(elderly.getUser().getId()))
             .putData("elderlyName", name)
-            .setToken(workerFcm)
+            .setToken(protectorFcm)
             .build();
 
     try {
-      FirebaseMessaging.getInstance().send(workerMessage);
+      FirebaseMessaging.getInstance().send(protectorMessage);
     } catch (FirebaseMessagingException e) {
-      throw LifelineException.from(ErrorCode.FCM_SEND_FAILED);
+      log.error("보호자에게 약 복용 알림 FCM 전송 실패: {}", e.getMessage());
     }
   }
 }

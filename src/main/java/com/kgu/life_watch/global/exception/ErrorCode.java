@@ -20,6 +20,7 @@ public enum ErrorCode {
   DUPLICATE_MEMBER_LOGIN_ID(HttpStatus.CONFLICT, "중복된 로그인 아이디입니다"),
   PROFILE_IMAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필 이미지를 찾을 수 없습니다"),
   MEMBER_NOT_ADMIN(HttpStatus.FORBIDDEN, "관리자가 아닙니다"),
+  DUPLICATE_PHONE_NUMBER(HttpStatus.CONFLICT, "이미 가입된 전화번호입니다"),
 
   // info
   INFO_NOT_FOUND(HttpStatus.NOT_FOUND, "정보를 찾을 수 없습니다."),

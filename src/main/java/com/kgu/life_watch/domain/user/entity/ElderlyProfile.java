@@ -20,11 +20,9 @@ public class ElderlyProfile {
   @Column(nullable = true, name = "disability_registration_number")
   private String drn; // 장애등록번호 선택
 
-  // SocialWorkerProfile에 assignedElderId (단일 Long) -> 여러 노인과 매핑하는 구조로 바꿔야 함.
-  // 즉, 1명의 사회복지사가 여러 명의 노인을 담당할 수 있는 구조로 변경해야 함.
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "social_worker_id", referencedColumnName = "user_id")
-  private SocialWorkerProfile socialWorkerProfile;
+  @JoinColumn(name = "protector_id", referencedColumnName = "user_id")
+  private ProtectorProfile protectorProfile;
 
   @Column(nullable = false)
   private String protectorContact; // 보호자 연락처 필수
@@ -32,12 +30,19 @@ public class ElderlyProfile {
   @Column(nullable = false, name = "protector_name")
   private String protectorName; // 보호자 이름 넣어달라고해서 추가
 
+  @Column(nullable = false)
+  @Builder.Default
+  private boolean isConnected = false;
+
+  @Column(nullable = true)
+  private String deviceName;
+
   public void setUser(User user) {
     this.user = user;
   }
 
-  public void setSocialWorkerProfile(SocialWorkerProfile profile) {
-    this.socialWorkerProfile = profile;
+  public void setProtectorProfile(ProtectorProfile profile) {
+    this.protectorProfile = profile;
   }
 
   // 노인용 추가 정보 수정 메서드
@@ -50,19 +55,8 @@ public class ElderlyProfile {
     }
   }
 
-  // 웨어러블 연결 상태 ( 기본값 :false )
-  @Column(name = "is_wearable_connected")
-  @Builder.Default
-  private boolean isWearableConnected = false;
-
-  // 연결된 웨어러블 기기 이름 (어떤 워치인지 표시)
-  @Column(name = "wearable_device_name")
-  private String wearableDeviceName;
-
-  // 웨어러블 연결 상태를 변경하는 비즈니스 메서드
   public void updateWearableConnection(boolean isConnected, String deviceName) {
-    this.isWearableConnected = isConnected;
-    this.wearableDeviceName = deviceName;
+    this.isConnected = isConnected;
+    this.deviceName = deviceName;
   }
-
 }

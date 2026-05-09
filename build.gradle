@@ -66,6 +66,9 @@ dependencies {
 	//sns
 	implementation 'net.nurigo:sdk:4.2.7'
 
+	//mail
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
 }
 
 // Spotless 설정 (코드 스타일 자동 정리 도구)

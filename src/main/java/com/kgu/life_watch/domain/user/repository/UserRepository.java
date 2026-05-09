@@ -11,13 +11,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
   // loginId로 유저 존재 여부 확인
   boolean existsByLoginId(String loginId);
 
+  // phoneNumber로 유저 존재 여부 확인
+  boolean existsByPhoneNumber(String phoneNumber);
+
   // loginId로 유저 조회
   @EntityGraph(
       attributePaths = {
         "elderlyProfile",
-        "elderlyProfile.socialWorkerProfile",
-        "elderlyProfile.socialWorkerProfile.user",
-        "socialWorkerProfile"
+        "elderlyProfile.protectorProfile",
+        "elderlyProfile.protectorProfile.user",
+        "protectorProfile"
       })
   Optional<User> findByLoginId(String loginId);
 
@@ -26,4 +29,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   // loginId + phoneNumber로 조회
   Optional<User> findByLoginIdAndPhoneNumber(String loginId, String phoneNumber);
+
+  // loginCode로 유저 조회
+  @EntityGraph(
+      attributePaths = {"elderlyProfile", "elderlyProfile.protectorProfile", "protectorProfile"})
+  Optional<User> findByLoginCode(String loginCode);
 }

@@ -64,7 +64,6 @@ public class SecurityConfig {
                         "/chat/**",
                         "/ws-chat/**")
                     .permitAll()
-
                     // 모바일 앱 Health Connect 동기화 API 허용
                     .requestMatchers(HttpMethod.POST, "/api/health/sync")
                     .permitAll()

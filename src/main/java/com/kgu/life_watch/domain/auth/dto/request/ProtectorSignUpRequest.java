@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 
-public record SocialWorkerSignUpRequest(
+public record ProtectorSignUpRequest(
     @NotBlank(message = "이름은 필수입니다.") String name,
     @NotBlank(message = "아이디는 필수입니다.") String loginId,
     @NotBlank(message = "이메일은 필수입니다.") @Email(message = "이메일 형식이 아닙니다.") String email,

@@ -20,7 +20,7 @@ public record ElderlySignUpRequest(
     String drn, // 선택 항목으로 변경
     String protectorName, // 선택 항목으로 변경
     String protectorContact, // 선택 항목으로 변경
-    String socialWorkerId,
+    String protectorId,
     @NotNull(message = "생년월일은 필수입니다.") @JsonFormat(pattern = "yyyy/MM/dd") LocalDate birthDate,
     @NotBlank(message = "성별은 필수입니다.")
         @Pattern(regexp = "^(남|여)$", message = "성별은 '남' 또는 '여'로 입력해주세요.")

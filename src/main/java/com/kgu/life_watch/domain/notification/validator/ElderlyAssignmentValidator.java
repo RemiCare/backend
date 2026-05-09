@@ -20,7 +20,8 @@ public class ElderlyAssignmentValidator {
         elderlyProfileRepository
             .findByUserId(elderlyId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-    if (!elderly.getSocialWorkerProfile().getUser().getId().equals(worker.getId())) {
+    if (elderly.getProtectorProfile() == null
+        || !elderly.getProtectorProfile().getUser().getId().equals(worker.getId())) {
       throw LifelineException.from(ErrorCode.INVALID_REQUEST);
     }
     return elderly;

@@ -18,10 +18,10 @@ import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
-import com.kgu.life_watch.domain.user.entity.SocialWorkerProfile;
+import com.kgu.life_watch.domain.user.entity.ProtectorProfile;
 import com.kgu.life_watch.domain.user.entity.User;
 import com.kgu.life_watch.domain.user.repository.ElderlyProfileRepository;
-import com.kgu.life_watch.domain.user.repository.SocialWorkerProfileRepository;
+import com.kgu.life_watch.domain.user.repository.ProtectorProfileRepository;
 import com.kgu.life_watch.domain.user.repository.UserRepository;
 import com.kgu.life_watch.global.exception.ErrorCode;
 import com.kgu.life_watch.global.exception.LifelineException;
@@ -30,29 +30,29 @@ import com.kgu.life_watch.global.exception.LifelineException;
 @Service
 public class UserService {
   private final ElderlyProfileRepository elderlyProfileRepository;
-  private final SocialWorkerProfileRepository socialWorkerProfileRepository;
+  private final ProtectorProfileRepository protectorProfileRepository;
   private final ChatRoomService chatRoomService;
   private final UserRepository userRepository;
   private final ChatRoomRepository chatRoomRepository;
   private final ChatParticipationService chatParticipationService;
 
   @Transactional
-  public void assignElderly(Long elderlyId, Long socialWorkerId) {
+  public void assignElderly(Long elderlyId, Long protectorId) {
     ElderlyProfile elderly =
         elderlyProfileRepository
             .findById(elderlyId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-    SocialWorkerProfile socialWorker =
-        socialWorkerProfileRepository
-            .findById(socialWorkerId)
+    ProtectorProfile protector =
+        protectorProfileRepository
+            .findById(protectorId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    // 연관관계 편의 메서드를 통해 노인을 사회복지사에게 할당
-    socialWorker.addElderly(elderly);
+    // 연관관계 편의 메서드를 통해 노인을 보호자에게 할당
+    protector.addElderly(elderly);
 
     // 기존 채팅방 존재 여부 확인
     List<ChatParticipation> participationList =
-        chatParticipationService.getParticipationByUser(socialWorker.getUser());
+        chatParticipationService.getParticipationByUser(protector.getUser());
 
     boolean chatRoomExists = false;
 
@@ -63,7 +63,7 @@ public class UserService {
           chatRoom.getParticipation().stream().map(p -> p.getUser().getId()).toList();
 
       if (participantIds.size() == 2
-          && participantIds.contains(socialWorker.getUser().getId())
+          && participantIds.contains(protector.getUser().getId())
           && participantIds.contains(elderly.getUser().getId())) {
         // 기존 채팅방 존재 → 상태만 ACTIVE로 변경
         chatRoom.updateStatus(RoomStatus.ACTIVATE);
@@ -74,29 +74,29 @@ public class UserService {
 
     // 없으면 새로 생성
     if (!chatRoomExists) {
-      chatRoomService.createChatRoom(elderly.getUser(), socialWorkerId);
+      chatRoomService.createChatRoom(elderly.getUser(), protectorId);
     }
   }
 
   @Transactional
-  public void unassignElderly(Long elderlyId, Long socialWorkerId) {
+  public void unassignElderly(Long elderlyId, Long protectorId) {
     ElderlyProfile elderly =
         elderlyProfileRepository
             .findById(elderlyId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-    SocialWorkerProfile socialWorker =
-        socialWorkerProfileRepository
-            .findById(socialWorkerId)
+    ProtectorProfile protector =
+        protectorProfileRepository
+            .findById(protectorId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    socialWorker.getAssignedSeniors().remove(elderly);
-    // 노인의 사회복지사 연관관계 해제
-    elderly.setSocialWorkerProfile(null);
+    protector.getAssignedSeniors().remove(elderly);
+    // 노인의 보호자 연관관계 해제
+    elderly.setProtectorProfile(null);
 
     // 채팅방 상태 바꾸기
-    // 1. 참여 중인 채팅방 리스트 가져오기 (사회복지사 기준)
+    // 1. 참여 중인 채팅방 리스트 가져오기 (보호자 기준)
     List<ChatParticipation> participationList =
-        chatParticipationService.getParticipationByUser(socialWorker.getUser());
+        chatParticipationService.getParticipationByUser(protector.getUser());
 
     // 2. 노인과 둘 다 참여한 채팅방 찾기
     for (ChatParticipation participation : participationList) {
@@ -106,7 +106,7 @@ public class UserService {
           chatRoom.getParticipation().stream().map(p -> p.getUser().getId()).toList();
 
       if (participantIds.size() == 2
-          && participantIds.contains(socialWorker.getUser().getId())
+          && participantIds.contains(protector.getUser().getId())
           && participantIds.contains(elderly.getUser().getId())) {
 
         chatRoom.updateStatus(RoomStatus.DEACTIVATE);
@@ -137,15 +137,15 @@ public class UserService {
 
   @Transactional(readOnly = true)
   public List<ElderlySimpleInfoResponse> getAssignableElderlyList() {
-    return elderlyProfileRepository.findAllBySocialWorkerProfileIsNull().stream()
+    return elderlyProfileRepository.findAllByProtectorProfileIsNull().stream()
         .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
         .toList();
   }
 
   @Transactional(readOnly = true)
-  public List<ElderlySimpleInfoResponse> getAssignedElderlyList(User socialWorkerUser) {
-    Long socialWorkerProfileId = socialWorkerUser.getSocialWorkerProfile().getId();
-    return elderlyProfileRepository.findAllBySocialWorkerProfileId(socialWorkerProfileId).stream()
+  public List<ElderlySimpleInfoResponse> getAssignedElderlyList(User protectorUser) {
+    Long protectorProfileId = protectorUser.getProtectorProfile().getId();
+    return elderlyProfileRepository.findAllByProtectorProfileId(protectorProfileId).stream()
         .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
         .toList();
   }

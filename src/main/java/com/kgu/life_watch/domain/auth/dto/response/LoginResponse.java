@@ -8,9 +8,13 @@ public record LoginResponse(
     LocalDate birthDate,
     String protectorName,
     String protectorContact,
-    String socialWorkerName,
-    String socialWorkerPhone,
+    String assignedProtectorName,
+    String assignedProtectorPhone,
     Long userId,
-    boolean isSocialWorker,
+    boolean isProtector,
+    String role,
+    String loginCode,
     String phoneNumber,
-    String address) {}
+    String address,
+    String assignedElderName,
+    String assignedElderCode) {}

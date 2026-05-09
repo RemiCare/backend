@@ -11,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class SocialWorkerProfile {
+public class ProtectorProfile {
 
   @Id private Long id;
 
@@ -20,7 +20,8 @@ public class SocialWorkerProfile {
   @JoinColumn(name = "user_id")
   private User user;
 
-  @OneToMany(mappedBy = "socialWorkerProfile", cascade = CascadeType.ALL)
+  @OneToMany(mappedBy = "protectorProfile", cascade = CascadeType.ALL)
+  @Builder.Default
   private List<ElderlyProfile> assignedSeniors = new ArrayList<>();
 
   public void setUser(User user) {
@@ -29,6 +30,6 @@ public class SocialWorkerProfile {
 
   public void addElderly(ElderlyProfile elderly) {
     assignedSeniors.add(elderly);
-    elderly.setSocialWorkerProfile(this);
+    elderly.setProtectorProfile(this);
   }
 }
