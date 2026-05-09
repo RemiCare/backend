@@ -23,7 +23,7 @@ public class AuthSmsService {
   private final SmsVerificationRepository smsVerificationRepository;
   private final DefaultMessageService messageService;
 
-  @Value("${coolsms.from-number}")
+  @Value("${coolsms.from-number:01000000000}")
   private String fromNumber;
 
   public AuthSmsService(
