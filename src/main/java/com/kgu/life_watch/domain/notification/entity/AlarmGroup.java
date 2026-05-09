@@ -32,6 +32,7 @@ public class AlarmGroup extends BaseEntity {
   private User user;
 
   @OneToMany(mappedBy = "alarmGroup", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<MedicineAlarm> alarms = new ArrayList<>();
 
   // 내용 업데이트
