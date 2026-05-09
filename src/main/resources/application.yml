@@ -1,5 +1,5 @@
 spring:
-  # Spring Data JPA
+  # JPA 설정
   jpa:
     show-sql: 'false'
     hibernate:
@@ -8,15 +8,15 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     properties:
       hibernate:
-        format_sql: true # SQL 포맷팅
-        highlight_sql: true # ANSI 코드에 색을 나타냄
-        use_sql_comments: true # SQL 내부에 /* */ 주석 추가
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
 
-  # .env import
+  # .env 임포트
   config:
     import: optional:file:./.env[.properties]
 
-  # Database
+  # 데이터베이스 설정
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: ${DB_USER}
@@ -24,18 +24,31 @@ spring:
     url: ${DB_URL}
     hikari:
       maximum-pool-size: 10
-      max-lifetime: 27000000  # 27000ms = 27000초 = 7.5시간
-      idle-timeout: 60000      # 유휴 커넥션 1분 후 제거
-      connection-timeout: 30000 # 커넥션 요청 최대 대기 시간 30초
-      validation-timeout: 5000  # 커넥션 검증 타임아웃 5초
+      max-lifetime: 27000000
+      idle-timeout: 60000
+      connection-timeout: 30000
+      validation-timeout: 5000
 
-
-  # Jwt
+  # JWT 설정
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration: ${JWT_EXPIRATION}
 
-# logging
+  # mail 설정
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          timeout: 5000
+
+# 로깅 설정
 logging:
   level:
     org:
@@ -44,17 +57,16 @@ logging:
           LocalVariableTableParameterNameDiscoverer: error
       hibernate:
         sql: debug
-        type.descriptor.sql: trace # 파라미터 값 추가
-        sql.results.internal.ResultsHelper: INFO # OneToMany 조회 관련 로그 숨김
+        type.descriptor.sql: trace
+        sql.results.internal.ResultsHelper: INFO
     p6spy:
 
-# p6spy log
 decorator:
   datasource:
     p6spy:
       enable-logging: false
 
-# Swagger 설정 추가
+# Swagger 설정
 springdoc:
   show-login-endpoint: true
   swagger-ui:
@@ -62,27 +74,7 @@ springdoc:
   api-docs:
     path: /v1/api-docs
 
-rabbitmq:
-  host: ${RABBITMQ_HOST}
-  port: ${RABBITMQ_PORT}
-  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
-  username: ${RABBITMQ_USERNAME}
-  password: ${RABBITMQ_PASSWORD}
-  relay:
-    port: ${RABBITMQ_RELAY_PORT}
-    system-login: ${RABBITMQ_RELAY_SYSTEM_LOGIN}
-    system-passcode: ${RABBITMQ_RELAY_SYSTEM_PASSCODE}
-    client-login: ${RABBITMQ_RELAY_CLIENT_LOGIN}
-    client-passcode: ${RABBITMQ_RELAY_CLIENT_PASSCODE}
-  chat:
-    queue:
-      name: ${RABBITMQ_CHAT_QUEUE_NAME}
-    exchange:
-      name: ${RABBITMQ_CHAT_EXCHANGE_NAME}
-    routing:
-      key: ${RABBITMQ_CHAT_ROUTING_KEY}
-
-# sms
+# CoolSMS 설정
 coolsms:
   api-key: ${API_KEY}
   api-secret: ${API_SECRET}
