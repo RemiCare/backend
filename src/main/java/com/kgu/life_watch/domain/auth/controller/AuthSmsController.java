@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
 import com.kgu.life_watch.domain.auth.dto.request.SmsVerificationRequest;
-import com.kgu.life_watch.domain.auth.dto.response.SmsVerifyResponse;
 import com.kgu.life_watch.domain.auth.service.AuthSmsService;
 import com.kgu.life_watch.global.domain.SuccessCode;
 import com.kgu.life_watch.global.dto.response.ApiResponse;
@@ -31,8 +30,9 @@ public class AuthSmsController {
   // 인증
   @PostMapping("/sms/verify")
   @Operation(summary = "인증 메시지 검증 API", description = "인증 메시지를 검증하는 API입니다.")
-  public ApiResponse<SmsVerifyResponse> verifyCode(@RequestBody SmsVerificationRequest request) {
-    boolean isValid = smsService.verifyCode(request.phoneNumber(), request.verificationCode());
-    return new ApiResponse<>(SmsVerifyResponse.builder().isValid(isValid).build());
+  public ApiResponse<Void> verifyCode(@RequestBody SmsVerificationRequest request) {
+    smsService.verifyCode(request.phoneNumber(), request.verificationCode());
+    // 서비스에서 예외가 발생하지 않았다면 성공으로 간주
+    return new ApiResponse<>(SuccessCode.REQUEST_OK);
   }
 }
