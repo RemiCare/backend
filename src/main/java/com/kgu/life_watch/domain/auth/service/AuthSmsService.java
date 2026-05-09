@@ -13,6 +13,8 @@ import net.nurigo.sdk.message.service.DefaultMessageService;
 
 import com.kgu.life_watch.domain.auth.entity.SmsVerification;
 import com.kgu.life_watch.domain.auth.repository.SmsVerificationRepository;
+import com.kgu.life_watch.global.exception.ErrorCode;
+import com.kgu.life_watch.global.exception.LifelineException;
 
 @Service
 @Transactional
@@ -20,6 +22,9 @@ public class AuthSmsService {
 
   private final SmsVerificationRepository smsVerificationRepository;
   private final DefaultMessageService messageService;
+
+  @Value("${coolsms.from-number:01000000000}")
+  private String fromNumber;
 
   public AuthSmsService(
       SmsVerificationRepository smsVerificationRepository,
@@ -35,7 +40,7 @@ public class AuthSmsService {
     String code = String.valueOf((int) ((Math.random() * 8999) + 1000));
 
     Message message = new Message();
-    message.setFrom("01031474612");
+    message.setFrom(fromNumber);
     message.setTo(phone);
     message.setText("[라이프워치] 인증번호 [" + code + "]를 입력해주세요.");
 
@@ -45,19 +50,25 @@ public class AuthSmsService {
 
   @Transactional
   public boolean verifyCode(String phoneNumber, String verificationCode) {
-    return smsVerificationRepository
-        .findTopByPhoneNumberOrderByCreatedAtDesc(phoneNumber)
-        .filter(verification -> !verification.isUsed())
-        .filter(
-            verification ->
-                verification.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(5)))
-        .filter(verification -> verification.getCode().equals(verificationCode))
-        .map(
-            verification -> {
-              verification.markAsUsed();
-              return true;
-            })
-        .orElse(false);
+    SmsVerification verification =
+        smsVerificationRepository
+            .findTopByPhoneNumberOrderByCreatedAtDesc(phoneNumber)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.SMS_NOT_FOUND)); // 인증 기록 자체가 없는 경우
+
+    //  이미 사용된 번호인지 확인
+    if (verification.isUsed()) {
+      throw LifelineException.from(ErrorCode.SMS_ALREADY_USED);
+    }
+    // 만료 시간 확인 (5분)
+    if (verification.getCreatedAt().isBefore(LocalDateTime.now().minusMinutes(5))) {
+      throw LifelineException.from(ErrorCode.EXPIRED_SMS_CODE);
+    }
+    // 번호 일치 확인
+    if (!verification.getCode().equals(verificationCode)) {
+      throw LifelineException.from(ErrorCode.SMS_VERIFICATION_FAILED);
+    }
+    verification.markAsUsed();
+    return true;
   }
 
   @Transactional(readOnly = true)

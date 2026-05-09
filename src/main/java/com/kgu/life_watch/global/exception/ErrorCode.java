@@ -79,6 +79,9 @@ public enum ErrorCode {
   // sns
   SMS_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "검증 코드가 일치하지 않습니다!"),
   SMS_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "휴대폰 인증이 되지 않았습니다."),
+  SMS_NOT_FOUND(HttpStatus.NOT_FOUND, "인증 기록을 찾을 수 없습니다."),
+  SMS_ALREADY_USED(HttpStatus.BAD_REQUEST, "이미 사용된 인증 번호입니다."),
+  EXPIRED_SMS_CODE(HttpStatus.GONE, "인증 시간이 만료되었습니다."),
 
   // firebase
   FIREBASE_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, "Firebase 환경변수를 찾을 수 없습니다."),

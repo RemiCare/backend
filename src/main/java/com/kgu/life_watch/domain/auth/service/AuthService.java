@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 
 import com.kgu.life_watch.domain.auth.dto.request.*;
 import com.kgu.life_watch.domain.auth.dto.response.*;
-import com.kgu.life_watch.domain.chat.service.ChatRoomService;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
 import com.kgu.life_watch.domain.user.entity.ProtectorProfile;
 import com.kgu.life_watch.domain.user.entity.User;
@@ -29,103 +28,70 @@ public class AuthService {
   private final ProtectorProfileRepository protectorProfileRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtTokenProvider jwtTokenProvider;
-  private final AuthSmsService authSmsService;
-  private final ChatRoomService chatRoomService;
 
+  /** [통합 회원가입] 보호자 계정 생성 -> 보호자 프로필 생성 -> 어르신 계정 생성 -> 보호자-어르신 연결 프로필 생성 */
   @Transactional
-  public void signUpElderly(ElderlySignUpRequest request) {
-    if (userRepository.existsByLoginId(request.loginId())) {
-      throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
-    }
-    if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
-      throw LifelineException.from(ErrorCode.DUPLICATE_PHONE_NUMBER);
-    }
+  public CombinedSignUpResponse signUpCombined(CombinedSignUpRequest request) { // 보호자 중복 체크 및 계정 생성
+    User protectorUser = createProtectorUser(request.protector());
+    userRepository.save(protectorUser);
 
-    User user =
-        User.builder()
-            .name(request.name())
-            .loginId(request.loginId())
-            .email(request.email())
-            .password(passwordEncoder.encode(request.password()))
-            .phoneNumber(request.phoneNumber())
-            .address(request.address())
-            .rrn(request.rrn())
-            .birthDate(request.birthDate())
-            .gender(request.gender())
-            .role(User.Role.ELDER) // 노인으로 가입 시 ELDER 역할 부여
-            .fcmToken(request.fcmToken())
-            .loginCode(generateUniqueLoginCode()) // RC-XXXX 코드 생성
-            .build();
+    // 보호자 프로필 생성
+    ProtectorProfile protectorProfile = ProtectorProfile.builder().user(protectorUser).build();
+    protectorProfileRepository.save(protectorProfile);
 
-    ElderlyProfile.ElderlyProfileBuilder profileBuilder =
+    // 어르신 중복 체크 및 계정 생성
+    User elderlyUser = createElderlyUser(request.elderly());
+    userRepository.save(elderlyUser);
+
+    // 어르신 프로필 생성 및 방금 생성된 보호자 프로필과 매핑
+    ElderlyProfile elderlyProfile =
         ElderlyProfile.builder()
-            .user(user)
-            .drn(request.drn())
-            .protectorContact(request.protectorContact())
-            .protectorName(request.protectorName());
-
-    if (request.protectorId() != null && !request.protectorId().isBlank()) {
-      Long protectorId;
-      try {
-        protectorId = Long.valueOf(request.protectorId());
-      } catch (NumberFormatException e) {
-        throw LifelineException.from(ErrorCode.INVALID_REQUEST);
-      }
-
-      ProtectorProfile protectorProfile =
-          protectorProfileRepository
-              .findById(protectorId)
-              .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-
-      profileBuilder.protectorProfile(protectorProfile);
-    }
-
-    ElderlyProfile profile = profileBuilder.build();
-    elderlyProfileRepository.save(profile);
-    elderlyProfileRepository.flush();
-
-    if (profile.getProtectorProfile() != null) {
-      chatRoomService.createChatRoom(user, profile.getProtectorProfile().getId());
-    }
-  }
-
-  // RC-XXXX 형식의 유니크한 코드 생성
-  private String generateUniqueLoginCode() {
-    SecureRandom random = new SecureRandom();
-    String code;
-    do {
-      int num = random.nextInt(9000) + 1000; // 1000 ~ 9999
-      code = "RC-" + num;
-    } while (userRepository.findByLoginCode(code).isPresent());
-    return code;
-  }
-
-  @Transactional
-  public void signUpProtector(ProtectorSignUpRequest request) {
-    if (userRepository.existsByLoginId(request.loginId())) {
-      throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
-    }
-    if (userRepository.existsByPhoneNumber(request.phoneNumber())) {
-      throw LifelineException.from(ErrorCode.DUPLICATE_PHONE_NUMBER);
-    }
-
-    User user =
-        User.builder()
-            .name(request.name())
-            .loginId(request.loginId())
-            .email(request.email())
-            .password(passwordEncoder.encode(request.password()))
-            .phoneNumber(request.phoneNumber())
-            .address(request.address())
-            .rrn(request.rrn())
-            .birthDate(request.birthDate())
-            .gender(request.gender())
-            .role(User.Role.PROTECTOR)
-            .fcmToken(request.fcmToken())
+            .user(elderlyUser)
+            .protectorProfile(protectorProfile)
+            .drn(request.elderly().drn())
+            .protectorContact(request.elderly().protectorContact())
+            .protectorName(request.elderly().protectorName())
             .build();
+    elderlyProfileRepository.save(elderlyProfile);
 
-    ProtectorProfile profile = ProtectorProfile.builder().user(user).build();
-    protectorProfileRepository.save(profile);
+    return new CombinedSignUpResponse(
+        protectorUser.getName(), elderlyUser.getName(), elderlyUser.getLoginCode() // RC-XXXX 코드 반환
+        );
+  }
+
+  private User createProtectorUser(ProtectorSignUpRequest req) {
+    checkDuplicate(req.loginId(), req.phoneNumber());
+    return User.builder()
+        .name(req.name())
+        .loginId(req.loginId())
+        .email(req.email())
+        .password(passwordEncoder.encode(req.password()))
+        .phoneNumber(req.phoneNumber())
+        .address(req.address())
+        .rrn(req.rrn())
+        .birthDate(req.birthDate())
+        .gender(req.gender())
+        .role(User.Role.PROTECTOR)
+        .fcmToken(req.fcmToken())
+        .build();
+  }
+
+  private User createElderlyUser(ElderlySignUpRequest req) {
+    checkDuplicate(req.loginId(), req.phoneNumber());
+    return User.builder()
+        .name(req.name())
+        .loginId(req.loginId())
+        .email(req.email())
+        .password(passwordEncoder.encode(req.password()))
+        .phoneNumber(req.phoneNumber())
+        .address(req.address())
+        .rrn(req.rrn())
+        .birthDate(req.birthDate())
+        .gender(req.gender())
+        .role(User.Role.ELDER)
+        .fcmToken(req.fcmToken())
+        .loginCode(generateUniqueLoginCode())
+        .build();
   }
 
   @Transactional(readOnly = true)
@@ -138,7 +104,6 @@ public class AuthService {
     if (!passwordEncoder.matches(request.password(), user.getPassword())) {
       throw LifelineException.from(ErrorCode.INCORRECT_PASSWORD);
     }
-
     return createLoginResponse(user);
   }
 
@@ -148,10 +113,38 @@ public class AuthService {
         userRepository
             .findByLoginCode(loginCode)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-
     return createLoginResponse(user);
   }
 
+  @Transactional
+  public void updateFcmToken(Long userId, String fcmToken) {
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+    user.updateFcmToken(fcmToken);
+  }
+
+  @Transactional(readOnly = true)
+  public void checkDuplicate(String loginId, String phoneNumber) {
+    if (loginId != null && !loginId.isBlank() && userRepository.existsByLoginId(loginId)) {
+      throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
+    }
+    if (phoneNumber != null
+        && !phoneNumber.isBlank()
+        && userRepository.existsByPhoneNumber(phoneNumber)) {
+      throw LifelineException.from(ErrorCode.DUPLICATE_PHONE_NUMBER);
+    }
+  }
+
+  @Transactional(readOnly = true)
+  public void verifyIdentity(String loginId, String phoneNumber) {
+    userRepository
+        .findByLoginIdAndPhoneNumber(loginId, phoneNumber)
+        .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+  }
+
+  /** [로그인 응답 생성] 역할별(보호자/어르신) 맞춤형 데이터를 포함한 응답 객체를 빌드 */
   private LoginResponse createLoginResponse(User user) {
     String jwt = jwtTokenProvider.generateToken(user);
     boolean isProtector = user.getRole() == User.Role.PROTECTOR;
@@ -160,23 +153,24 @@ public class AuthService {
     String assignedElderName = null;
     String assignedElderCode = null;
 
-    // 보호자인 경우 연결된 첫 번째 어르신 정보 가져오기
+    // 보호자인 경우: 담당하고 있는 첫 번째 어르신 정보 조회
     if (isProtector && user.getProtectorProfile() != null) {
       var seniors = user.getProtectorProfile().getAssignedSeniors();
-      if (!seniors.isEmpty()) {
+      if (seniors != null && !seniors.isEmpty()) {
         ElderlyProfile primaryElder = seniors.get(0);
         assignedElderName = primaryElder.getUser().getName();
         assignedElderCode = primaryElder.getUser().getLoginCode();
       }
     }
 
+    // 어르신인 경우: 프로필 및 연동된 보호자 정보 포함
     if (user.getRole() == User.Role.ELDER && user.getElderlyProfile() != null) {
       ElderlyProfile elderly = user.getElderlyProfile();
       ProtectorProfile protector = elderly.getProtectorProfile();
 
-      String protectorName =
+      String systemProtectorName =
           (protector != null && protector.getUser() != null) ? protector.getUser().getName() : null;
-      String protectorPhone =
+      String systemProtectorPhone =
           (protector != null && protector.getUser() != null)
               ? protector.getUser().getPhoneNumber()
               : null;
@@ -185,10 +179,10 @@ public class AuthService {
           user.getName(),
           jwt,
           user.getBirthDate(),
-          elderly.getProtectorName(),
-          elderly.getProtectorContact(),
-          protectorName,
-          protectorPhone,
+          elderly.getProtectorName(), // 수동 입력 보호자명
+          elderly.getProtectorContact(), // 수동 입력 보호자 연락처
+          systemProtectorName,
+          systemProtectorPhone, // 시스템 연동 보호자 정보
           user.getId(),
           false,
           roleStr,
@@ -199,6 +193,7 @@ public class AuthService {
           null);
     }
 
+    // 보호자 혹은 프로필 없는 경우 기본 응답
     return new LoginResponse(
         user.getName(),
         jwt,
@@ -217,34 +212,12 @@ public class AuthService {
         assignedElderCode);
   }
 
-  @Transactional
-  public void updateFcmToken(Long userId, String fcmToken) {
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-
-    user.updateFcmToken(fcmToken);
-  }
-
-  @Transactional(readOnly = true)
-  public void checkDuplicate(String loginId, String phoneNumber) {
-    if (loginId != null && !loginId.isBlank()) {
-      if (userRepository.existsByLoginId(loginId)) {
-        throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
-      }
-    }
-    if (phoneNumber != null && !phoneNumber.isBlank()) {
-      if (userRepository.existsByPhoneNumber(phoneNumber)) {
-        throw LifelineException.from(ErrorCode.DUPLICATE_PHONE_NUMBER);
-      }
-    }
-  }
-
-  @Transactional(readOnly = true)
-  public void verifyIdentity(String loginId, String phoneNumber) {
-    userRepository
-        .findByLoginIdAndPhoneNumber(loginId, phoneNumber)
-        .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+  private String generateUniqueLoginCode() {
+    SecureRandom random = new SecureRandom();
+    String code;
+    do {
+      code = "RC-" + (random.nextInt(9000) + 1000);
+    } while (userRepository.findByLoginCode(code).isPresent());
+    return code;
   }
 }

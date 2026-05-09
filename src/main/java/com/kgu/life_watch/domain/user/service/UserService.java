@@ -1,19 +1,16 @@
 package com.kgu.life_watch.domain.user.service;
 
+import java.security.SecureRandom;
 import java.util.List;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
 import com.kgu.life_watch.domain.auth.dto.request.UserUpdateRequest;
-import com.kgu.life_watch.domain.chat.entity.ChatRoom;
-import com.kgu.life_watch.domain.chat.entity.RoomStatus;
-import com.kgu.life_watch.domain.chat.entity.mapping.ChatParticipation;
-import com.kgu.life_watch.domain.chat.repository.ChatRoomRepository;
-import com.kgu.life_watch.domain.chat.service.ChatParticipationService;
-import com.kgu.life_watch.domain.chat.service.ChatRoomService;
+import com.kgu.life_watch.domain.user.dto.request.ElderlyRegisterRequest;
 import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
@@ -28,98 +25,90 @@ import com.kgu.life_watch.global.exception.LifelineException;
 
 @RequiredArgsConstructor
 @Service
+@Transactional(readOnly = true)
 public class UserService {
+  private final UserRepository userRepository;
   private final ElderlyProfileRepository elderlyProfileRepository;
   private final ProtectorProfileRepository protectorProfileRepository;
-  private final ChatRoomService chatRoomService;
-  private final UserRepository userRepository;
-  private final ChatRoomRepository chatRoomRepository;
-  private final ChatParticipationService chatParticipationService;
+  private final PasswordEncoder passwordEncoder;
 
+  /** [어르신 추가 등록] 로그인한 보호자가 어르신 계정을 직접 생성하고 연결 */
   @Transactional
-  public void assignElderly(Long elderlyId, Long protectorId) {
-    ElderlyProfile elderly =
-        elderlyProfileRepository
-            .findById(elderlyId)
-            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-    ProtectorProfile protector =
+  public void registerElderly(User protectorUser, ElderlyRegisterRequest request) {
+    // 중복 체크
+    if (userRepository.existsByLoginId(request.loginId())) {
+      throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
+    }
+
+    // 어르신 User 엔티티 생성
+    User elderly =
+        User.builder()
+            .name(request.name())
+            .loginId(request.loginId())
+            .password(passwordEncoder.encode(request.password()))
+            .phoneNumber(request.phoneNumber())
+            .address(request.address())
+            .rrn(request.rrn())
+            .birthDate(request.birthDate())
+            .gender(request.gender())
+            .role(User.Role.ELDER)
+            .fcmToken(request.fcmToken())
+            .loginCode(generateUniqueLoginCode())
+            .build();
+    userRepository.save(elderly);
+
+    // 보호자 프로필 조회 및 어르신 프로필 생성/연결
+    ProtectorProfile protectorProfile =
         protectorProfileRepository
-            .findById(protectorId)
+            .findByUser(protectorUser)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    // 연관관계 편의 메서드를 통해 노인을 보호자에게 할당
-    protector.addElderly(elderly);
-
-    // 기존 채팅방 존재 여부 확인
-    List<ChatParticipation> participationList =
-        chatParticipationService.getParticipationByUser(protector.getUser());
-
-    boolean chatRoomExists = false;
-
-    for (ChatParticipation participation : participationList) {
-      ChatRoom chatRoom = participation.getChatRoom();
-
-      List<Long> participantIds =
-          chatRoom.getParticipation().stream().map(p -> p.getUser().getId()).toList();
-
-      if (participantIds.size() == 2
-          && participantIds.contains(protector.getUser().getId())
-          && participantIds.contains(elderly.getUser().getId())) {
-        // 기존 채팅방 존재 → 상태만 ACTIVE로 변경
-        chatRoom.updateStatus(RoomStatus.ACTIVATE);
-        chatRoomExists = true;
-        break;
-      }
-    }
-
-    // 없으면 새로 생성
-    if (!chatRoomExists) {
-      chatRoomService.createChatRoom(elderly.getUser(), protectorId);
-    }
+    ElderlyProfile elderlyProfile =
+        ElderlyProfile.builder()
+            .user(elderly)
+            .protectorProfile(protectorProfile)
+            .drn(request.drn())
+            .protectorName(request.protectorName())
+            .protectorContact(request.protectorContact())
+            .build();
+    elderlyProfileRepository.save(elderlyProfile);
   }
 
+  /** [어르신 등록 해제] 계정 삭제가 아닌 보호자와의 연결만 끊음 */
   @Transactional
-  public void unassignElderly(Long elderlyId, Long protectorId) {
-    ElderlyProfile elderly =
+  public void removeElderly(User protectorUser, Long elderlyId) {
+    ElderlyProfile elderlyProfile =
         elderlyProfileRepository
-            .findById(elderlyId)
-            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-    ProtectorProfile protector =
-        protectorProfileRepository
-            .findById(protectorId)
+            .findByUserId(elderlyId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    protector.getAssignedSeniors().remove(elderly);
-    // 노인의 보호자 연관관계 해제
-    elderly.setProtectorProfile(null);
-
-    // 채팅방 상태 바꾸기
-    // 1. 참여 중인 채팅방 리스트 가져오기 (보호자 기준)
-    List<ChatParticipation> participationList =
-        chatParticipationService.getParticipationByUser(protector.getUser());
-
-    // 2. 노인과 둘 다 참여한 채팅방 찾기
-    for (ChatParticipation participation : participationList) {
-      ChatRoom chatRoom = participation.getChatRoom();
-
-      List<Long> participantIds =
-          chatRoom.getParticipation().stream().map(p -> p.getUser().getId()).toList();
-
-      if (participantIds.size() == 2
-          && participantIds.contains(protector.getUser().getId())
-          && participantIds.contains(elderly.getUser().getId())) {
-
-        chatRoom.updateStatus(RoomStatus.DEACTIVATE);
-        break;
-      }
+    // 해당 어르신을 담당하는 보호자가 본인이 맞는지 확인
+    if (!elderlyProfile.getProtectorProfile().getUser().getId().equals(protectorUser.getId())) {
+      throw LifelineException.from(ErrorCode.INVALID_REQUEST);
     }
+
+    // 연결 해제
+    elderlyProfile.setProtectorProfile(null);
   }
 
-  @Transactional(readOnly = true)
+  /** [관리 중인 어르신 목록 조회] 사회복지사 로직에서 보호자 로직으로 변경 */
+  public List<ElderlySimpleInfoResponse> getMyElderlyList(User protectorUser) {
+    ProtectorProfile protectorProfile =
+        protectorProfileRepository
+            .findByUser(protectorUser)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+
+    return elderlyProfileRepository.findAllByProtectorProfileId(protectorProfile.getId()).stream()
+        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
+        .toList();
+  }
+
+  /** 내 프로필 정보 조회 */
   public UserProfileResponse getProfile(User user) {
     return UserProfileResponse.toDto(user);
   }
 
+  /** 사용자 정보 수정 (에러 수정: 인스턴스 메서드로 정의) */
   @Transactional
   public void updateUserInfo(Long userId, UserUpdateRequest request) {
     User user =
@@ -129,40 +118,33 @@ public class UserService {
 
     user.updateBasicInfo(request.name(), request.phoneNumber(), request.address());
 
-    if (user.getRole() == User.Role.USER && user.getElderlyProfile() != null) {
-      ElderlyProfile profile = user.getElderlyProfile();
-      profile.updateProtector(request.protectorName(), request.protectorContact());
+    if (user.getRole() == User.Role.ELDER && user.getElderlyProfile() != null) {
+      user.getElderlyProfile().updateProtector(request.protectorName(), request.protectorContact());
     }
   }
 
-  @Transactional(readOnly = true)
-  public List<ElderlySimpleInfoResponse> getAssignableElderlyList() {
-    return elderlyProfileRepository.findAllByProtectorProfileIsNull().stream()
-        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
-        .toList();
-  }
-
-  @Transactional(readOnly = true)
-  public List<ElderlySimpleInfoResponse> getAssignedElderlyList(User protectorUser) {
-    Long protectorProfileId = protectorUser.getProtectorProfile().getId();
-    return elderlyProfileRepository.findAllByProtectorProfileId(protectorProfileId).stream()
-        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
-        .toList();
-  }
-
+  /** 웨어러블 기기 연결 상태 업데이트 (에러 수정) */
   @Transactional
   public void updateWearableConnectionStatus(Long userId, WearableConnectionRequest request) {
     User user =
         userRepository
             .findById(userId)
-            .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    // 노인 프로필 가져와서 상태 업데이트
     ElderlyProfile profile = user.getElderlyProfile();
-    if (profile != null) {
-      profile.updateWearableConnection(request.isConnected(), request.deviceName());
-    } else {
-      throw new IllegalArgumentException("노인 프로필이 존재하지 않습니다.");
+    if (profile == null) {
+      throw LifelineException.from(ErrorCode.MEMBER_NOT_FOUND);
     }
+
+    profile.updateWearableConnection(request.isConnected(), request.deviceName());
+  }
+
+  private String generateUniqueLoginCode() {
+    SecureRandom random = new SecureRandom();
+    String code;
+    do {
+      code = "RC-" + (random.nextInt(9000) + 1000);
+    } while (userRepository.findByLoginCode(code).isPresent());
+    return code;
   }
 }

@@ -37,6 +37,16 @@ public class ApiResponse<T> {
     this.status = new Status(errorCode);
   }
 
+  // 단일 결과용 정적 메서드
+  public static <T> ApiResponse<T> ok(T data) {
+    return new ApiResponse<>(data);
+  }
+
+  // 목록 결과용 정적 메서드
+  public static <T> ApiResponse<T> ok(List<T> data) {
+    return new ApiResponse<>(data);
+  }
+
   // 리스트 결과 생성자
   public ApiResponse(List<T> results) {
     this.status = new Status(ErrorCode.REQUEST_OK);

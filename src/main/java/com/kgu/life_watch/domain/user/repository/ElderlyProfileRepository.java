@@ -9,16 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.kgu.life_watch.domain.user.entity.ElderlyProfile;
 
 public interface ElderlyProfileRepository extends JpaRepository<ElderlyProfile, Long> {
-  // @EntityGraph는 LAZY 전략을 유지하면서도 필요한 순간에만 명시적으로 fetch join을 해주는 방식
-  // JPA가 쿼리를 생성할 때 연관된 엔티티까지 조인해서 한 번에 로딩 -> 이거 안하면 알람 보낼 때 트랜잭션 범위를 벗어난 시점에서 Lazy 로딩을 시도함 정신 나갈뻔
-  @EntityGraph(attributePaths = "protectorProfile")
-  Optional<ElderlyProfile> findWithProtectorProfileById(Long id);
 
-  List<ElderlyProfile> findAllByProtectorProfileIsNull();
-
+  // 보호자 ID로 관리 중인 어르신 목록 전체 조회
   List<ElderlyProfile> findAllByProtectorProfileId(Long protectorProfileId);
 
-  // 노인의 userId를 기반으로 ElderlyProfile과 그에 연결된 ProtectorProfile과 User까지 함께 로딩
+  // 어르신 연결 해제 및 정보 수정 시 사용
+  // @EntityGraph를 유지하여 연관된 엔티티까지 한 번에 로딩함으로써 Lazy 로딩 에러 방지
   @EntityGraph(attributePaths = {"protectorProfile.user"})
   Optional<ElderlyProfile> findByUserId(Long userId);
 }
