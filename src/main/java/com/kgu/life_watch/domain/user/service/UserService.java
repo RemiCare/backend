@@ -1,13 +1,16 @@
 package com.kgu.life_watch.domain.user.service;
 
+import java.security.SecureRandom;
 import java.util.List;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 
 import com.kgu.life_watch.domain.auth.dto.request.UserUpdateRequest;
+import com.kgu.life_watch.domain.user.dto.request.ElderlyRegisterRequest;
 import com.kgu.life_watch.domain.user.dto.request.WearableConnectionRequest;
 import com.kgu.life_watch.domain.user.dto.response.ElderlySimpleInfoResponse;
 import com.kgu.life_watch.domain.user.dto.response.UserProfileResponse;
@@ -27,23 +30,77 @@ public class UserService {
   private final UserRepository userRepository;
   private final ElderlyProfileRepository elderlyProfileRepository;
   private final ProtectorProfileRepository protectorProfileRepository;
+  private final PasswordEncoder passwordEncoder;
 
-  /** 노인 할당 (보호자 - 노인 연결) */
+  /** [어르신 추가 등록] 로그인한 보호자가 어르신 계정을 직접 생성하고 연결 */
   @Transactional
-  public void assignElderly(Long elderlyId, Long protectorId) {
-    ElderlyProfile elderly = findElderlyById(elderlyId);
-    ProtectorProfile protector = findProtectorById(protectorId);
-    protector.addElderly(elderly);
+  public void registerElderly(User protectorUser, ElderlyRegisterRequest request) {
+    // 중복 체크
+    if (userRepository.existsByLoginId(request.loginId())) {
+      throw LifelineException.from(ErrorCode.ACCOUNT_USERNAME_EXIST);
+    }
+
+    // 어르신 User 엔티티 생성
+    User elderly =
+        User.builder()
+            .name(request.name())
+            .loginId(request.loginId())
+            .password(passwordEncoder.encode(request.password()))
+            .phoneNumber(request.phoneNumber())
+            .address(request.address())
+            .rrn(request.rrn())
+            .birthDate(request.birthDate())
+            .gender(request.gender())
+            .role(User.Role.ELDER)
+            .fcmToken(request.fcmToken())
+            .loginCode(generateUniqueLoginCode())
+            .build();
+    userRepository.save(elderly);
+
+    // 보호자 프로필 조회 및 어르신 프로필 생성/연결
+    ProtectorProfile protectorProfile =
+        protectorProfileRepository
+            .findByUser(protectorUser)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+
+    ElderlyProfile elderlyProfile =
+        ElderlyProfile.builder()
+            .user(elderly)
+            .protectorProfile(protectorProfile)
+            .drn(request.drn())
+            .protectorName(request.protectorName())
+            .protectorContact(request.protectorContact())
+            .build();
+    elderlyProfileRepository.save(elderlyProfile);
   }
 
-  /** 노인 할당 해제 */
+  /** [어르신 등록 해제] 계정 삭제가 아닌 보호자와의 연결만 끊음 */
   @Transactional
-  public void unassignElderly(Long elderlyId, Long protectorId) {
-    ElderlyProfile elderly = findElderlyById(elderlyId);
-    ProtectorProfile protector = findProtectorById(protectorId);
+  public void removeElderly(User protectorUser, Long elderlyId) {
+    ElderlyProfile elderlyProfile =
+        elderlyProfileRepository
+            .findByUserId(elderlyId)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    protector.getAssignedSeniors().remove(elderly);
-    elderly.setProtectorProfile(null);
+    // 해당 어르신을 담당하는 보호자가 본인이 맞는지 확인
+    if (!elderlyProfile.getProtectorProfile().getUser().getId().equals(protectorUser.getId())) {
+      throw LifelineException.from(ErrorCode.INVALID_REQUEST);
+    }
+
+    // 연결 해제
+    elderlyProfile.setProtectorProfile(null);
+  }
+
+  /** [관리 중인 어르신 목록 조회] 사회복지사 로직에서 보호자 로직으로 변경 */
+  public List<ElderlySimpleInfoResponse> getMyElderlyList(User protectorUser) {
+    ProtectorProfile protectorProfile =
+        protectorProfileRepository
+            .findByUser(protectorUser)
+            .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+
+    return elderlyProfileRepository.findAllByProtectorProfileId(protectorProfile.getId()).stream()
+        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
+        .toList();
   }
 
   /** 내 프로필 정보 조회 */
@@ -51,7 +108,7 @@ public class UserService {
     return UserProfileResponse.toDto(user);
   }
 
-  /** 사용자 정보 수정 (공통 정보 + 노인인 경우 보호자 정보) */
+  /** 사용자 정보 수정 (에러 수정: 인스턴스 메서드로 정의) */
   @Transactional
   public void updateUserInfo(Long userId, UserUpdateRequest request) {
     User user =
@@ -59,31 +116,14 @@ public class UserService {
             .findById(userId)
             .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
 
-    // 기본 정보(이름, 번호, 주소) 업데이트
     user.updateBasicInfo(request.name(), request.phoneNumber(), request.address());
 
-    // 노인 역할인 경우 추가 정보 업데이트
     if (user.getRole() == User.Role.ELDER && user.getElderlyProfile() != null) {
       user.getElderlyProfile().updateProtector(request.protectorName(), request.protectorContact());
     }
   }
 
-  /** 할당 가능한 노인 목록 조회 (보호자가 없는 노인들) */
-  public List<ElderlySimpleInfoResponse> getAssignableElderlyList() {
-    return elderlyProfileRepository.findAllByProtectorProfileIsNull().stream()
-        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
-        .toList();
-  }
-
-  /** 특정 보호자가 담당 중인 노인 목록 조회 */
-  public List<ElderlySimpleInfoResponse> getAssignedElderlyList(User protectorUser) {
-    Long protectorProfileId = protectorUser.getProtectorProfile().getId();
-    return elderlyProfileRepository.findAllByProtectorProfileId(protectorProfileId).stream()
-        .map(profile -> ElderlySimpleInfoResponse.from(profile.getUser()))
-        .toList();
-  }
-
-  /** 웨어러블 기기 연결 상태 업데이트 */
+  /** 웨어러블 기기 연결 상태 업데이트 (에러 수정) */
   @Transactional
   public void updateWearableConnectionStatus(Long userId, WearableConnectionRequest request) {
     User user =
@@ -93,23 +133,18 @@ public class UserService {
 
     ElderlyProfile profile = user.getElderlyProfile();
     if (profile == null) {
-      throw LifelineException.from(ErrorCode.MEMBER_NOT_FOUND); // 노인 프로필 없음 에러
+      throw LifelineException.from(ErrorCode.MEMBER_NOT_FOUND);
     }
 
     profile.updateWearableConnection(request.isConnected(), request.deviceName());
   }
 
-  // Helper Methods
-
-  private ElderlyProfile findElderlyById(Long id) {
-    return elderlyProfileRepository
-        .findById(id)
-        .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
-  }
-
-  private ProtectorProfile findProtectorById(Long id) {
-    return protectorProfileRepository
-        .findById(id)
-        .orElseThrow(() -> LifelineException.from(ErrorCode.MEMBER_NOT_FOUND));
+  private String generateUniqueLoginCode() {
+    SecureRandom random = new SecureRandom();
+    String code;
+    do {
+      code = "RC-" + (random.nextInt(9000) + 1000);
+    } while (userRepository.findByLoginCode(code).isPresent());
+    return code;
   }
 }
