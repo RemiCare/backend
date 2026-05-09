@@ -78,3 +78,4 @@ springdoc:
 coolsms:
   api-key: ${API_KEY}
   api-secret: ${API_SECRET}
+  from-number: ${SMS_FROM_NUMBER}
