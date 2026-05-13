@@ -79,3 +79,24 @@ coolsms:
   api-key: ${API_KEY}
   api-secret: ${API_SECRET}
   from-number: ${SMS_FROM_NUMBER}
+
+# RabbitMQ 설정 추가
+rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  username: ${RABBITMQ_USERNAME}
+  password: ${RABBITMQ_PASSWORD}
+  relay:
+    port: ${RABBITMQ_RELAY_PORT}
+    system-login: ${RABBITMQ_RELAY_SYSTEM_LOGIN}
+    system-passcode: ${RABBITMQ_RELAY_SYSTEM_PASSCODE}
+    client-login: ${RABBITMQ_RELAY_CLIENT_LOGIN}
+    client-passcode: ${RABBITMQ_RELAY_CLIENT_PASSCODE}
+  chat:
+    queue:
+      name: ${RABBITMQ_CHAT_QUEUE_NAME}
+    exchange:
+      name: ${RABBITMQ_CHAT_EXCHANGE_NAME}
+    routing:
+      key: ${RABBITMQ_CHAT_ROUTING_KEY}

@@ -25,20 +25,14 @@ public class AuthController {
 
   private final AuthService authService;
 
-  @PostMapping("/signup/combined")
-  @Operation(
-      summary = "보호자 및 어르신 통합 회원가입 API",
-      description = "한 번의 요청으로 보호자 가입과 어르신 등록을 동시에 처리합니다.(어르신 로그인 코드를 반환)")
-  public ApiResponse<CombinedSignUpResponse> signUpCombined(
-      @Valid @RequestBody CombinedSignUpRequest request) {
-    CombinedSignUpResponse response = authService.signUpCombined(request);
+  @PostMapping("/signup")
+  @Operation(summary = "회원가입 API", description = "보호자 가입과 어르신 등록을 동시에 처리합니다.")
+  public ApiResponse<CombinedSignUpResponse> signUp(
+      @Valid @RequestBody LegacySignUpRequest request) {
+    log.info("[REQUEST] 회원가입 시도 - 보호자: {}, 어르신: {}", request.protectorName(), request.name());
 
-    log.info(
-        "[✅SUCCESS] 통합 가입 완료 - 보호자: {}, 어르신: {}",
-        request.protector().name(),
-        request.elderly().name());
-
-    log.info("[✅SUCCESS] 통합 가입 완료 - 어르신 코드: {}", response.elderlyLoginCode());
+    CombinedSignUpResponse response = authService.signUp(request);
+    log.info("[✅SUCCESS] 가입 완료 - 어르신 코드: {}", response.elderlyLoginCode());
     return new ApiResponse<>(response);
   }
 
