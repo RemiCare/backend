@@ -67,8 +67,8 @@ public class SecurityConfig {
                     // 모바일 앱 Health Connect 동기화 API 허용
                     .requestMatchers(HttpMethod.POST, "/api/health/sync")
                     .permitAll()
-                    .requestMatchers("/api/auth/**", "/api/alert/**")
-                    .permitAll() // 로그인과 회원가입은 인증 없이 접근 가능
+                    .requestMatchers("/api/auth/**", "/api/alert/**", "/api/camera/**")
+                    .permitAll() // 로그인, 회원가입, 알림, 카메라 설정은 인증 없이 접근 가능
                     .anyRequest()
                     .authenticated() // 그 외 요청은 인증 필요
             )
@@ -88,6 +88,8 @@ public class SecurityConfig {
             "http://localhost:3000",
             "http://localhost:3001",
             "http://localhost:8080",
+            "http://localhost",
+            "capacitor://localhost",
             "http://192.168.1.102:3000",
             "http://192.168.1.102:3001",
             "http://192.168.1.102:8080",

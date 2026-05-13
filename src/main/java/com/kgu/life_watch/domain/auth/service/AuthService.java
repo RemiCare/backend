@@ -1,6 +1,7 @@
 package com.kgu.life_watch.domain.auth.service;
 
 import java.security.SecureRandom;
+import java.time.LocalDate;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,67 +30,68 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final JwtTokenProvider jwtTokenProvider;
 
-  /** [통합 회원가입] 보호자 계정 생성 -> 보호자 프로필 생성 -> 어르신 계정 생성 -> 보호자-어르신 연결 프로필 생성 */
+  /** [회원가입] 앱에서 받은 정보를 바탕으로 보호자 및 어르신 계정을 동시에 생성 */
   @Transactional
-  public CombinedSignUpResponse signUpCombined(CombinedSignUpRequest request) { // 보호자 중복 체크 및 계정 생성
-    User protectorUser = createProtectorUser(request.protector());
+  public CombinedSignUpResponse signUp(LegacySignUpRequest request) {
+    // 1. 보호자 계정 생성 및 저장
+    User protectorUser = createProtectorUser(request);
     userRepository.save(protectorUser);
 
-    // 보호자 프로필 생성
+    // 2. 보호자 프로필 생성
     ProtectorProfile protectorProfile = ProtectorProfile.builder().user(protectorUser).build();
     protectorProfileRepository.save(protectorProfile);
 
-    // 어르신 중복 체크 및 계정 생성
-    User elderlyUser = createElderlyUser(request.elderly());
+    // 3. 어르신 계정 생성 및 저장 (아이디 중복 방지를 위해 접두어 추가)
+    User elderlyUser = createElderlyUser(request);
     userRepository.save(elderlyUser);
 
-    // 어르신 프로필 생성 및 방금 생성된 보호자 프로필과 매핑
+    // 4. 어르신 프로필 생성 및 보호자 매핑
     ElderlyProfile elderlyProfile =
         ElderlyProfile.builder()
             .user(elderlyUser)
             .protectorProfile(protectorProfile)
-            .drn(request.elderly().drn())
-            .protectorContact(request.elderly().protectorContact())
-            .protectorName(request.elderly().protectorName())
+            .drn(request.drn() != null ? request.drn() : "NONE")
+            .protectorContact(request.protectorContact())
+            .protectorName(request.protectorName())
             .build();
     elderlyProfileRepository.save(elderlyProfile);
 
     return new CombinedSignUpResponse(
-        protectorUser.getName(), elderlyUser.getName(), elderlyUser.getLoginCode() // RC-XXXX 코드 반환
-        );
+        protectorUser.getName(), elderlyUser.getName(), elderlyUser.getLoginCode());
   }
 
-  private User createProtectorUser(ProtectorSignUpRequest req) {
+  private User createProtectorUser(LegacySignUpRequest req) {
     checkDuplicate(req.loginId(), req.phoneNumber());
     return User.builder()
-        .name(req.name())
+        .name(req.protectorName())
         .loginId(req.loginId())
         .email(req.email())
         .password(passwordEncoder.encode(req.password()))
         .phoneNumber(req.phoneNumber())
         .address(req.address())
-        .rrn(req.rrn())
-        .birthDate(req.birthDate())
-        .gender(req.gender())
+        .rrn(req.rrn() != null ? req.rrn() : "000000-0000000")
+        .birthDate(LocalDate.now().minusYears(40)) // 보호자 생일 기본값
+        .gender(req.gender() != null ? req.gender() : "남")
         .role(User.Role.PROTECTOR)
-        .fcmToken(req.fcmToken())
+        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "dummy_fcm")
         .build();
   }
 
-  private User createElderlyUser(ElderlySignUpRequest req) {
-    checkDuplicate(req.loginId(), req.phoneNumber());
+  private User createElderlyUser(LegacySignUpRequest req) {
+    String elderlyLoginId = "elder_" + req.loginId();
+    checkDuplicate(elderlyLoginId, null); // 어르신 아이디 중복 체크
     return User.builder()
         .name(req.name())
-        .loginId(req.loginId())
-        .email(req.email())
+        .loginId(elderlyLoginId)
+        .email(null)
         .password(passwordEncoder.encode(req.password()))
         .phoneNumber(req.phoneNumber())
         .address(req.address())
-        .rrn(req.rrn())
+        .rrn(req.rrn() != null ? req.rrn() : "000000-0000000")
         .birthDate(req.birthDate())
-        .gender(req.gender())
+        .gender(req.gender() != null ? req.gender() : "남")
         .role(User.Role.ELDER)
-        .fcmToken(req.fcmToken())
+        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "dummy_fcm")
         .loginCode(generateUniqueLoginCode())
         .build();
   }
