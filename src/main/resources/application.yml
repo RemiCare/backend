@@ -51,6 +51,9 @@ spring:
 # 로깅 설정
 logging:
   level:
+    web: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
     org:
       springframework:
         core:

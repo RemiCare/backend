@@ -70,6 +70,11 @@ public class HealthDataService {
     }
   }
 
+  @Transactional(readOnly = true)
+  public java.util.Optional<HealthData> getLatestHealthData(Long userId) {
+    return healthDataRepository.findByUserIdOrderByRecordDateDesc(userId).stream().findFirst();
+  }
+
   private LocalDate parseDate(String value) {
     if (value == null || value.isBlank()) {
       throw new IllegalArgumentException("날짜가 필요합니다.");

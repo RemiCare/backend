@@ -67,8 +67,13 @@ public class SecurityConfig {
                     // 모바일 앱 Health Connect 동기화 API 허용
                     .requestMatchers(HttpMethod.POST, "/api/health/sync")
                     .permitAll()
-                    .requestMatchers("/api/auth/**", "/api/alert/**", "/api/camera/**")
-                    .permitAll() // 로그인, 회원가입, 알림, 카메라 설정은 인증 없이 접근 가능
+                    .requestMatchers(
+                        "/api/auth/**",
+                        "/api/alert/**",
+                        "/api/camera/**",
+                        "/api/health/**",
+                        "/api/user/**")
+                    .permitAll() // 로그인, 회원가입, 알림, 카메라, 건강데이터, 유저 정보는 인증 없이 접근 가능
                     .anyRequest()
                     .authenticated() // 그 외 요청은 인증 필요
             )
