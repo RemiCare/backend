@@ -6,8 +6,11 @@ on:
       - develop   # 🟩 develop 브랜치로 직접 push될 때
 
   pull_request:
+    # 🟦 PR이 생성, 코드 추가, 다시 열릴 때
     types:
-      - [opened, synchronize, reopened]   # 🟦 PR이 생성, 코드 추가, 다시 열릴 때
+      - opened
+      - synchronize
+      - reopened
     branches:
       - develop   # 대상 브랜치가 develop일 때만
 
