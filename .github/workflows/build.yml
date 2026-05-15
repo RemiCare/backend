@@ -7,19 +7,23 @@ on:
 
   pull_request:
     types:
-      - closed    # 🟦 PR이 closed될 때 (즉, merge 포함)
+      - [opened, synchronize, reopened]   # 🟦 PR이 생성, 코드 추가, 다시 열릴 때
     branches:
       - develop   # 대상 브랜치가 develop일 때만
 
 env:
-  IMAGE_NAME: hjh-test-registry.kr.ncr.ntruss.com/back-02
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/back-02
   IMAGE_TAG: latest
 
 jobs:
   build:
-    # PR이 그냥 닫힌 경우(false merge) 방지
-    if: github.event_name == 'push' || github.event.pull_request.merged == true
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+
+    # GHCR에 이미지를 올리기 위한 권한 설정
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout source
@@ -40,18 +44,23 @@ jobs:
       - name: Build without tests
         run: ./gradlew bootJar -x test
 
-      - name: Login to NCP Container Registry
-        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login hjh-test-registry.kr.ncr.ntruss.com --username ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+      # GitHub 자체 토큰으로 로그인합니다. (별도 Secret 등록 필요 없음)
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image
+      - name: Build and Tag Docker image
         run: |
           docker build -t ${{ env.IMAGE_NAME }}:1.0 .
           docker tag ${{ env.IMAGE_NAME }}:1.0 ${{ env.IMAGE_NAME }}:latest
 
-      - name: Push Docker image
+      - name: Push Docker image to GHCR
         run: |
           docker push ${{ env.IMAGE_NAME }}:1.0
           docker push ${{ env.IMAGE_NAME }}:latest
 
       - name: Notify
-        run: echo "✅ Build and Docker image pushed successfully."
+        run: echo "✅ Build and Docker image pushed to GHCR successfully."
