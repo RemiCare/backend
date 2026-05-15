@@ -70,6 +70,7 @@ public class SecurityConfig {
                     .requestMatchers(
                         "/api/auth/**",
                         "/api/alert/**",
+                        "/api/alarm/**",
                         "/api/camera/**",
                         "/api/health/**",
                         "/api/user/**")

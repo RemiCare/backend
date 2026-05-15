@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:21-jdk
 
 # 시간대 데이터 설치 (slim 이미지에는 기본적으로 없을 수 있음)
 RUN apt-get update && apt-get install -y tzdata && \
