@@ -15,7 +15,7 @@ on:
       - develop   # 대상 브랜치가 develop일 때만
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/back-02
+  IMAGE_NAME: ghcr.io/remicare/back-02
   IMAGE_TAG: latest
 
 jobs:
