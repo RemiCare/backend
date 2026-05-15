@@ -17,6 +17,7 @@ on:
 env:
   IMAGE_NAME: ghcr.io/remicare/back-02
   IMAGE_TAG: latest
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
