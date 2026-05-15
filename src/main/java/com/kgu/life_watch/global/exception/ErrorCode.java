@@ -76,6 +76,9 @@ public enum ErrorCode {
   // alarm
   ALARM_NOT_FOUND(HttpStatus.NOT_FOUND, "약 알람 그룹을 찾을 수 없습니다."),
 
+  // medication
+  MEDICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "복약 정보를 찾을 수 없습니다."),
+
   // sns
   SMS_VERIFICATION_FAILED(HttpStatus.UNAUTHORIZED, "검증 코드가 일치하지 않습니다!"),
   SMS_NOT_VERIFIED(HttpStatus.BAD_REQUEST, "휴대폰 인증이 되지 않았습니다."),
