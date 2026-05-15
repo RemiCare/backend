@@ -1,10 +1,5 @@
 package com.kgu.life_watch.domain.alarm.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kgu.life_watch.domain.alarm.dto.request.EmergencyAlarmRequest;
-import com.kgu.life_watch.domain.alarm.dto.request.PushTokenRegisterRequest;
-import com.kgu.life_watch.domain.alarm.entity.AlarmPushToken;
-import com.kgu.life_watch.domain.alarm.repository.AlarmPushTokenRepository;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,8 +8,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.kgu.life_watch.domain.alarm.dto.request.EmergencyAlarmRequest;
+import com.kgu.life_watch.domain.alarm.dto.request.PushTokenRegisterRequest;
+import com.kgu.life_watch.domain.alarm.entity.AlarmPushToken;
+import com.kgu.life_watch.domain.alarm.repository.AlarmPushTokenRepository;
 
 @Service
 public class AlarmService {
@@ -80,7 +83,8 @@ public class AlarmService {
     return sendToExpo(messages);
   }
 
-  private Map<String, Object> buildExpoMessage(String expoPushToken, EmergencyAlarmRequest request) {
+  private Map<String, Object> buildExpoMessage(
+      String expoPushToken, EmergencyAlarmRequest request) {
     String title = request.getTitle();
 
     if (title == null || title.isBlank()) {
@@ -136,10 +140,7 @@ public class AlarmService {
       HttpResponse<String> response =
           httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
-      return "Expo response code="
-          + response.statusCode()
-          + ", body="
-          + response.body();
+      return "Expo response code=" + response.statusCode() + ", body=" + response.body();
 
     } catch (Exception e) {
       throw new RuntimeException("Failed to send Expo push notification", e);

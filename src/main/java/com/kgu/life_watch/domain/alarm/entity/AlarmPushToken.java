@@ -1,14 +1,13 @@
 package com.kgu.life_watch.domain.alarm.entity;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(
     name = "alarm_push_token",
-    uniqueConstraints = {
-      @UniqueConstraint(columnNames = {"expo_push_token"})
-    })
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"expo_push_token"})})
 public class AlarmPushToken {
 
   @Id

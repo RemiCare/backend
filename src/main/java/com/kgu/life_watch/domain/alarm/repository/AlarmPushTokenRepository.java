@@ -1,9 +1,11 @@
 package com.kgu.life_watch.domain.alarm.repository;
 
-import com.kgu.life_watch.domain.alarm.entity.AlarmPushToken;
 import java.util.List;
 import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.kgu.life_watch.domain.alarm.entity.AlarmPushToken;
 
 public interface AlarmPushTokenRepository extends JpaRepository<AlarmPushToken, Long> {
 
