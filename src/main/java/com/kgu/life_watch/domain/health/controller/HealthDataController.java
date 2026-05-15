@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.kgu.life_watch.domain.health.dto.request.WatchHealthDataRequest;
+import com.kgu.life_watch.domain.health.dto.response.HealthDataDetailResponse;
 import com.kgu.life_watch.domain.health.dto.response.HealthDataResponse;
 import com.kgu.life_watch.domain.health.service.HealthDataService;
 import com.kgu.life_watch.domain.user.entity.User;
@@ -25,6 +26,19 @@ public class HealthDataController {
   public HealthDataController(HealthDataService healthDataService, UserRepository userRepository) {
     this.healthDataService = healthDataService;
     this.userRepository = userRepository;
+  }
+
+  @GetMapping("/{userId}/today")
+  public ResponseEntity<ApiResponse<HealthDataDetailResponse>> getHealthDataToday(
+      @PathVariable Long userId) {
+    HealthDataDetailResponse data = healthDataService.getHealthDataToday(userId);
+    return ResponseEntity.ok(ApiResponse.ok(data));
+  }
+
+  @GetMapping("/{userId}/history")
+  public ResponseEntity<ApiResponse<HealthDataDetailResponse>> getHealthHistory(
+      @PathVariable Long userId) {
+    return ResponseEntity.ok(ApiResponse.ok(healthDataService.getHealthHistory(userId)));
   }
 
   @PostMapping("/sync")

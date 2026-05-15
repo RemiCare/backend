@@ -10,7 +10,7 @@ version = '0.0.1-SNAPSHOT'
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -53,6 +53,7 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-annotations:2.17.3'
 	implementation 'com.fasterxml.jackson.core:jackson-core:2.17.3'
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.3'
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.3'
 
 	// 채팅 구현
 	implementation 'org.springframework.boot:spring-boot-starter-websocket' // WebSocket

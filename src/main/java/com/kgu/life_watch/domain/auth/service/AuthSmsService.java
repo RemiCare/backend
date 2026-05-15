@@ -22,6 +22,7 @@ public class AuthSmsService {
 
   private final SmsVerificationRepository smsVerificationRepository;
   private final DefaultMessageService messageService;
+  private final String apiKey;
 
   @Value("${coolsms.from-number:01000000000}")
   private String fromNumber;
@@ -31,20 +32,24 @@ public class AuthSmsService {
       @Value("${coolsms.api-key}") String apiKey,
       @Value("${coolsms.api-secret}") String apiSecret) {
     this.smsVerificationRepository = smsVerificationRepository;
+    this.apiKey = apiKey;
     this.messageService =
         NurigoApp.INSTANCE.initialize(apiKey, apiSecret, "https://api.coolsms.co.kr");
   }
 
   @Transactional
   public void sendAuthenticationCode(String phone) {
-    String code = String.valueOf((int) ((Math.random() * 8999) + 1000));
-
-    Message message = new Message();
-    message.setFrom(fromNumber);
-    message.setTo(phone);
-    message.setText("[라이프워치] 인증번호 [" + code + "]를 입력해주세요.");
-
-    messageService.sendOne(new SingleMessageSendingRequest(message));
+    String code;
+    if (apiKey.equals("dummy")) {
+      code = "1234";
+    } else {
+      code = String.valueOf((int) ((Math.random() * 8999) + 1000));
+      Message message = new Message();
+      message.setFrom(fromNumber);
+      message.setTo(phone);
+      message.setText("[라이프워치] 인증번호 [" + code + "]를 입력해주세요.");
+      messageService.sendOne(new SingleMessageSendingRequest(message));
+    }
     smsVerificationRepository.save(new SmsVerification(phone, code));
   }
 

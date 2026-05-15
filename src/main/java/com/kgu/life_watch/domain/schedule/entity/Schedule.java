@@ -30,7 +30,7 @@ public class Schedule extends BaseEntity {
   @Column(nullable = false)
   private LocalTime executionTime; // 실행 시간
 
-  @ElementCollection
+  @ElementCollection(fetch = FetchType.EAGER)
   @CollectionTable(name = "schedule_days", joinColumns = @JoinColumn(name = "schedule_id"))
   @Enumerated(EnumType.STRING)
   private List<DayOfWeek> daysOfWeek = new ArrayList<>(); // 반복 요일

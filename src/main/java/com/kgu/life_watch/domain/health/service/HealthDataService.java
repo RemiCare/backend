@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kgu.life_watch.domain.health.dto.request.WatchHealthDataRequest;
+import com.kgu.life_watch.domain.health.dto.response.HealthDataDetailResponse;
 import com.kgu.life_watch.domain.health.entity.HealthData;
 import com.kgu.life_watch.domain.health.repository.HealthDataRepository;
 
@@ -21,6 +22,21 @@ public class HealthDataService {
 
   public HealthDataService(HealthDataRepository healthDataRepository) {
     this.healthDataRepository = healthDataRepository;
+  }
+
+  @Transactional(readOnly = true)
+  public HealthDataDetailResponse getHealthDataToday(Long userId) {
+    return healthDataRepository
+        .findByUserIdAndRecordDate(userId, java.time.LocalDate.now())
+        .map(HealthDataDetailResponse::from)
+        .orElse(HealthDataDetailResponse.empty());
+  }
+
+  @Transactional(readOnly = true)
+  public java.util.List<HealthDataDetailResponse> getHealthHistory(Long userId) {
+    return healthDataRepository.findByUserIdOrderByRecordDateDesc(userId).stream()
+        .map(HealthDataDetailResponse::from)
+        .toList();
   }
 
   @Transactional

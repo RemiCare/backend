@@ -16,6 +16,13 @@ spring:
   config:
     import: optional:file:./.env[.properties]
 
+  # Jackson 날짜 직렬화 설정
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
   # 데이터베이스 설정
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
