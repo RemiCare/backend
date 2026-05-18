@@ -37,11 +37,10 @@ public class User extends BaseEntity {
   @Column(nullable = false)
   private String address;
 
-  @Column(nullable = false, name = "resident_registration_number")
+  @Column(name = "resident_registration_number")
   private String rrn;
 
-  @Column(nullable = false)
-  private LocalDate birthDate;
+  @Column private LocalDate birthDate;
 
   @Column(nullable = false)
   private String gender;

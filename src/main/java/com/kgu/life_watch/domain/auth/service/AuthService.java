@@ -1,7 +1,6 @@
 package com.kgu.life_watch.domain.auth.service;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -50,7 +49,7 @@ public class AuthService {
         ElderlyProfile.builder()
             .user(elderlyUser)
             .protectorProfile(protectorProfile)
-            .drn(request.drn() != null ? request.drn() : "NONE")
+            .drn(request.drn() != null ? request.drn() : "")
             .protectorContact(request.protectorContact())
             .protectorName(request.protectorName())
             .build();
@@ -61,25 +60,27 @@ public class AuthService {
   }
 
   private User createProtectorUser(LegacySignUpRequest req) {
-    checkDuplicate(req.loginId(), req.phoneNumber());
+    checkDuplicate(req.loginId(), req.protectorContact());
+
     return User.builder()
         .name(req.protectorName())
         .loginId(req.loginId())
-        .email(req.email())
+        .email(null)
         .password(passwordEncoder.encode(req.password()))
-        .phoneNumber(req.phoneNumber())
-        .address(req.address())
-        .rrn(req.rrn() != null ? req.rrn() : "000000-0000000")
-        .birthDate(LocalDate.now().minusYears(40)) // 보호자 생일 기본값
-        .gender(req.gender() != null ? req.gender() : "남")
+        .phoneNumber(req.protectorContact())
+        .address(req.protectorAddress())
+        .rrn(req.rrn() != null ? req.rrn() : "")
+        .birthDate(java.time.LocalDate.of(1900, 1, 1))
+        .gender(req.protectorGender())
         .role(User.Role.PROTECTOR)
-        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "dummy_fcm")
+        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "")
         .build();
   }
 
   private User createElderlyUser(LegacySignUpRequest req) {
     String elderlyLoginId = "elder_" + req.loginId();
-    checkDuplicate(elderlyLoginId, null); // 어르신 아이디 중복 체크
+    checkDuplicate(elderlyLoginId, req.phoneNumber());
+
     return User.builder()
         .name(req.name())
         .loginId(elderlyLoginId)
@@ -87,11 +88,11 @@ public class AuthService {
         .password(passwordEncoder.encode(req.password()))
         .phoneNumber(req.phoneNumber())
         .address(req.address())
-        .rrn(req.rrn() != null ? req.rrn() : "000000-0000000")
-        .birthDate(req.birthDate())
-        .gender(req.gender() != null ? req.gender() : "남")
+        .rrn(req.rrn() != null ? req.rrn() : "")
+        .birthDate(java.time.LocalDate.of(1900, 1, 1))
+        .gender(req.gender())
         .role(User.Role.ELDER)
-        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "dummy_fcm")
+        .fcmToken(req.fcmToken() != null ? req.fcmToken() : "")
         .loginCode(generateUniqueLoginCode())
         .build();
   }
