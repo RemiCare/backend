@@ -1,6 +1,5 @@
 package com.kgu.life_watch.domain.health.service;
 
-// 임시 추가
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,9 +20,8 @@ import com.kgu.life_watch.domain.health.repository.HealthDataRepository;
 import com.kgu.life_watch.domain.user.entity.User;
 import com.kgu.life_watch.domain.user.repository.UserRepository;
 
-@Service
-// 임시 추가
 @Slf4j
+@Service
 public class HealthDataService {
 
   private final HealthDataRepository healthDataRepository;
@@ -48,7 +46,7 @@ public class HealthDataService {
   @Transactional(readOnly = true)
   public HealthDataDetailResponse getHealthDataToday(Long userId) {
     return healthDataRepository
-        .findByUserIdAndRecordDate(userId, java.time.LocalDate.now())
+        .findByUserIdAndRecordDate(userId, LocalDate.now())
         .map(HealthDataDetailResponse::from)
         .orElse(HealthDataDetailResponse.empty());
   }
@@ -62,11 +60,14 @@ public class HealthDataService {
 
   @Transactional
   public void syncHealthData(WatchHealthDataRequest request) {
-    Long userId = request.getUserId();
+    Long requestUserId = request.getUserId();
 
-    if (userId == null) {
+    if (requestUserId == null) {
       throw new IllegalArgumentException("userId is required");
     }
+
+    // 요청이 보호자 userId로 들어오면, 실제 건강 데이터 저장 대상은 담당 어르신 userId로 변환
+    Long userId = resolveHealthOwnerUserId(requestUserId);
 
     LocalDate currentDate = parseDate(request.getCurrentDate());
     LocalDateTime currentHeartRateTime = parseDateTimeOrNull(request.getCurrentHeartRateTime());
@@ -109,7 +110,7 @@ public class HealthDataService {
       healthDataRepository.save(healthData);
     }
 
-    handleRiskAlarm(request, todaySleepMinutes);
+    handleRiskAlarm(userId, request.getCurrentHeartRate(), todaySleepMinutes);
   }
 
   @Transactional(readOnly = true)
@@ -117,28 +118,29 @@ public class HealthDataService {
     return healthDataRepository.findByUserIdOrderByRecordDateDesc(userId).stream().findFirst();
   }
 
-  private void handleRiskAlarm(WatchHealthDataRequest request, Long todaySleepMinutes) {
-    RiskResult risk = evaluateRisk(request.getCurrentHeartRate(), todaySleepMinutes);
+  private void handleRiskAlarm(
+      Long healthUserId, Integer currentHeartRate, Long todaySleepMinutes) {
+    RiskResult risk = evaluateRisk(currentHeartRate, todaySleepMinutes);
 
     log.info(
         "[HEALTH RISK] userId={}, heartRate={}, sleepMinutes={}, level={}, type={}",
-        request.getUserId(),
-        request.getCurrentHeartRate(),
+        healthUserId,
+        currentHeartRate,
         todaySleepMinutes,
         risk.level(),
         risk.type());
 
     if (!risk.isRisk()) {
-      log.info("[HEALTH RISK] 정상 상태 - 알림 발송 안 함");
+      log.info("[HEALTH RISK] normal - alarm skipped");
       return;
     }
 
-    Long targetUserId = resolveAlarmTargetUserId(request.getUserId());
+    Long targetUserId = resolveAlarmTargetUserId(healthUserId);
 
     log.info(
         "[HEALTH ALARM] targetUserId={}, sourceHealthUserId={}, grade={}, type={}",
         targetUserId,
-        request.getUserId(),
+        healthUserId,
         risk.grade(),
         risk.type());
 
@@ -164,7 +166,39 @@ public class HealthDataService {
     alarmService.sendEmergencyAlarm(alarmRequest);
   }
 
-  /** 생체 데이터의 userId가 어르신이면 보호자 userId로 변환. 생체 데이터의 userId가 보호자면 그대로 보호자에게 보냄. */
+  /**
+   * Health Connect 앱이 보호자 userId로 데이터를 보내는 경우, 실제 건강 데이터 저장 대상은 보호자가 담당하는 첫 번째 어르신 userId로 변환한다.
+   */
+  private Long resolveHealthOwnerUserId(Long requestUserId) {
+    User user =
+        userRepository
+            .findById(requestUserId)
+            .orElseThrow(
+                () -> new IllegalArgumentException("사용자를 찾을 수 없습니다. userId=" + requestUserId));
+
+    if (user.getRole() == User.Role.PROTECTOR && user.getProtectorProfile() != null) {
+      var seniors = user.getProtectorProfile().getAssignedSeniors();
+
+      if (seniors != null && !seniors.isEmpty() && seniors.get(0).getUser() != null) {
+        Long elderUserId = seniors.get(0).getUser().getId();
+
+        log.info(
+            "[HEALTH OWNER] requestUserId={} is protector. save health data as elderUserId={}",
+            requestUserId,
+            elderUserId);
+
+        return elderUserId;
+      }
+
+      log.info(
+          "[HEALTH OWNER] requestUserId={} is protector but no assigned elder found. save as original userId",
+          requestUserId);
+    }
+
+    return user.getId();
+  }
+
+  /** 생체 데이터의 userId가 어르신이면 보호자 userId로 변환. 생체 데이터의 userId가 보호자면 그대로 보호자에게 보낸다. */
   private Long resolveAlarmTargetUserId(Long healthUserId) {
     User user =
         userRepository
@@ -190,42 +224,74 @@ public class HealthDataService {
   }
 
   private RiskResult evaluateHeartRateRisk(Integer heartRate) {
-    if (heartRate == null) {
-      return RiskResult.normal();
-    }
-
-    if (heartRate >= 130) {
-      return new RiskResult(
-          1,
-          "GRADE_1",
-          "HEART_RATE_EMERGENCY",
-          "🚨 1등급 긴급 알림",
-          "현재 심박수 " + heartRate + "bpm이 감지되었습니다. 즉시 확인이 필요합니다.",
-          2);
-    }
-
-    if (heartRate >= 110) {
-      return new RiskResult(
-          2,
-          "GRADE_2",
-          "HEART_RATE_WARNING",
-          "⚠️ 2등급 주의 알림",
-          "현재 심박수 " + heartRate + "bpm입니다. 어르신 상태 확인이 필요합니다.",
-          30);
-    }
-
-    if (heartRate >= 100) {
-      return new RiskResult(
-          3,
-          "GRADE_3",
-          "HEART_RATE_NOTICE",
-          "심박수 상승 알림",
-          "현재 심박수 " + heartRate + "bpm입니다. 평소보다 높을 수 있습니다.",
-          60);
-    }
-
+  if (heartRate == null) {
     return RiskResult.normal();
   }
+
+  // 너무 낮은 심박수: 서맥 위험
+  if (heartRate < 40) {
+    return new RiskResult(
+        1,
+        "GRADE_1",
+        "HEART_RATE_TOO_LOW_EMERGENCY",
+        "🚨 1등급 긴급 알림",
+        "현재 심박수 " + heartRate + "bpm으로 매우 낮습니다. 즉시 확인이 필요합니다.",
+        2);
+  }
+
+  if (heartRate < 50) {
+    return new RiskResult(
+        2,
+        "GRADE_2",
+        "HEART_RATE_TOO_LOW_WARNING",
+        "⚠️ 2등급 주의 알림",
+        "현재 심박수 " + heartRate + "bpm으로 낮습니다. 어르신 상태 확인이 필요합니다.",
+        30);
+  }
+
+  if (heartRate < 60) {
+    return new RiskResult(
+        3,
+        "GRADE_3",
+        "HEART_RATE_TOO_LOW_NOTICE",
+        "심박수 저하 알림",
+        "현재 심박수 " + heartRate + "bpm입니다. 평소보다 낮을 수 있습니다.",
+        60);
+  }
+
+  // 너무 높은 심박수: 빈맥 위험
+  if (heartRate >= 130) {
+    return new RiskResult(
+        1,
+        "GRADE_1",
+        "HEART_RATE_EMERGENCY",
+        "🚨 1등급 긴급 알림",
+        "현재 심박수 " + heartRate + "bpm이 감지되었습니다. 즉시 확인이 필요합니다.",
+        2);
+  }
+
+  if (heartRate >= 110) {
+    return new RiskResult(
+        2,
+        "GRADE_2",
+        "HEART_RATE_WARNING",
+        "⚠️ 2등급 주의 알림",
+        "현재 심박수 " + heartRate + "bpm입니다. 어르신 상태 확인이 필요합니다.",
+        30);
+  }
+
+  if (heartRate >= 100) {
+    return new RiskResult(
+        3,
+        "GRADE_3",
+        "HEART_RATE_NOTICE",
+        "심박수 상승 알림",
+        "현재 심박수 " + heartRate + "bpm입니다. 평소보다 높을 수 있습니다.",
+        60);
+  }
+
+  return RiskResult.normal();
+}
 
   private RiskResult evaluateSleepRisk(Long sleepMinutes) {
     // null 또는 0 이하는 수면 데이터 없음으로 보고 판단하지 않음

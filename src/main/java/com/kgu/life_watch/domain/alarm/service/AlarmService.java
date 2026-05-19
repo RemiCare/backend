@@ -13,12 +13,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import com.kgu.life_watch.domain.alarm.dto.request.EmergencyAlarmRequest;
 import com.kgu.life_watch.domain.alarm.dto.request.PushTokenRegisterRequest;
 import com.kgu.life_watch.domain.alarm.entity.AlarmPushToken;
 import com.kgu.life_watch.domain.alarm.repository.AlarmPushTokenRepository;
 
+@Slf4j
 @Service
 public class AlarmService {
 
@@ -60,6 +62,12 @@ public class AlarmService {
     token.updateTokenInfo(request.getUserId(), request.getPlatform(), request.getDeviceName());
 
     alarmPushTokenRepository.save(token);
+
+    log.info(
+        "[ALARM] push token registered - userId={}, platform={}, deviceName={}",
+        request.getUserId(),
+        request.getPlatform(),
+        request.getDeviceName());
   }
 
   public String sendEmergencyAlarm(EmergencyAlarmRequest request) {
@@ -71,8 +79,16 @@ public class AlarmService {
         alarmPushTokenRepository.findByUserIdAndEnabledTrue(request.getUserId());
 
     if (tokens.isEmpty()) {
+      log.info("[ALARM] no push token - userId={}", request.getUserId());
       return "No push token registered for userId=" + request.getUserId();
     }
+
+    log.info(
+        "[ALARM] push token found - userId={}, tokenCount={}, level={}, type={}",
+        request.getUserId(),
+        tokens.size(),
+        request.getLevel(),
+        request.getType());
 
     List<Map<String, Object>> messages = new ArrayList<>();
 
@@ -80,11 +96,19 @@ public class AlarmService {
       messages.add(buildExpoMessage(token.getExpoPushToken(), request));
     }
 
-    return sendToExpo(messages);
+    String result = sendToExpo(messages);
+
+    log.info("[ALARM] expo push result={}", result);
+
+    return result;
   }
 
   private Map<String, Object> buildExpoMessage(
       String expoPushToken, EmergencyAlarmRequest request) {
+
+    int grade = resolveGrade(request.getLevel());
+    String channelId = makeChannelId(grade);
+
     String title = request.getTitle();
 
     if (title == null || title.isBlank()) {
@@ -102,6 +126,12 @@ public class AlarmService {
     data.put("level", request.getLevel());
     data.put("type", request.getType());
 
+    // 프론트 앱에서 알림 정책 처리할 때 쓰는 값
+    data.put("grade", grade);
+    data.put("channelId", channelId);
+    data.put("sticky", grade == 1 || grade == 2);
+    data.put("repeatIntervalMinutes", grade == 1 ? 2 : 0);
+
     Map<String, Object> message = new HashMap<>();
     message.put("to", expoPushToken);
     message.put("sound", "default");
@@ -109,21 +139,66 @@ public class AlarmService {
     message.put("body", body);
     message.put("data", data);
 
+    // Android 알림 채널. 앱 쪽에서도 같은 channelId를 만들어야 효과가 있음.
+    message.put("channelId", channelId);
+
+    // 1, 2등급은 우선순위 높게
+    message.put("priority", grade == 1 || grade == 2 ? "high" : "default");
+
     return message;
   }
 
+  private int resolveGrade(String level) {
+    if (level == null || level.isBlank()) {
+      return 3;
+    }
+
+    String normalized = level.toUpperCase();
+
+    if ("GRADE_1".equals(normalized)
+        || "HIGH".equals(normalized)
+        || "EMERGENCY".equals(normalized)) {
+      return 1;
+    }
+
+    if ("GRADE_2".equals(normalized)
+        || "CAUTION".equals(normalized)
+        || "WARNING".equals(normalized)
+        || "MID".equals(normalized)) {
+      return 2;
+    }
+
+    if ("GRADE_3".equals(normalized) || "NOTICE".equals(normalized) || "LOW".equals(normalized)) {
+      return 3;
+    }
+
+    return 3;
+  }
+
+  private String makeChannelId(int grade) {
+    if (grade == 1) {
+      return "emergency-grade-1";
+    }
+
+    if (grade == 2) {
+      return "warning-grade-2";
+    }
+
+    return "notice-grade-3";
+  }
+
   private String makeDefaultTitle(String level) {
-    if ("HIGH".equalsIgnoreCase(level) || "high".equalsIgnoreCase(level)) {
-      return "🚨 고위험 응급 알림";
+    int grade = resolveGrade(level);
+
+    if (grade == 1) {
+      return "🚨 1등급 긴급 알림";
     }
 
-    if ("CAUTION".equalsIgnoreCase(level)
-        || "WARNING".equalsIgnoreCase(level)
-        || "mid".equalsIgnoreCase(level)) {
-      return "⚠️ 주의 건강 알림";
+    if (grade == 2) {
+      return "⚠️ 2등급 주의 알림";
     }
 
-    return "건강 상태 알림";
+    return "3등급 건강 알림";
   }
 
   private String sendToExpo(List<Map<String, Object>> messages) {
