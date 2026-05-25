@@ -1,0 +1,112 @@
+spring:
+  # JPA 설정
+  jpa:
+    show-sql: 'false'
+    hibernate:
+      ddl-auto: update
+    open-in-view: 'false'
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+        use_sql_comments: true
+
+  # .env 임포트
+  config:
+    import: optional:file:./.env[.properties]
+
+  # Jackson 날짜 직렬화 설정
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # 데이터베이스 설정
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    url: ${DB_URL}
+    hikari:
+      maximum-pool-size: 10
+      max-lifetime: 27000000
+      idle-timeout: 60000
+      connection-timeout: 30000
+      validation-timeout: 5000
+
+  # JWT 설정
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration: ${JWT_EXPIRATION}
+
+  # mail 설정
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          timeout: 5000
+
+# 로깅 설정
+logging:
+  level:
+    web: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org:
+      springframework:
+        core:
+          LocalVariableTableParameterNameDiscoverer: error
+      hibernate:
+        sql: debug
+        type.descriptor.sql: trace
+        sql.results.internal.ResultsHelper: INFO
+    p6spy:
+
+decorator:
+  datasource:
+    p6spy:
+      enable-logging: false
+
+# Swagger 설정
+springdoc:
+  show-login-endpoint: true
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v1/api-docs
+
+# CoolSMS 설정
+coolsms:
+  api-key: ${API_KEY}
+  api-secret: ${API_SECRET}
+  from-number: ${SMS_FROM_NUMBER}
+
+# RabbitMQ 설정 추가
+rabbitmq:
+  host: ${RABBITMQ_HOST}
+  port: ${RABBITMQ_PORT}
+  virtual-host: ${RABBITMQ_VIRTUAL_HOST}
+  username: ${RABBITMQ_USERNAME}
+  password: ${RABBITMQ_PASSWORD}
+  relay:
+    port: ${RABBITMQ_RELAY_PORT}
+    system-login: ${RABBITMQ_RELAY_SYSTEM_LOGIN}
+    system-passcode: ${RABBITMQ_RELAY_SYSTEM_PASSCODE}
+    client-login: ${RABBITMQ_RELAY_CLIENT_LOGIN}
+    client-passcode: ${RABBITMQ_RELAY_CLIENT_PASSCODE}
+  chat:
+    queue:
+      name: ${RABBITMQ_CHAT_QUEUE_NAME}
+    exchange:
+      name: ${RABBITMQ_CHAT_EXCHANGE_NAME}
+    routing:
+      key: ${RABBITMQ_CHAT_ROUTING_KEY}

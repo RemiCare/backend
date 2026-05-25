@@ -1,0 +1,126 @@
+{
+  "samples" : [ {
+    "appleExerciseTime" : 0,
+    "date" : "2026-05-05T15:00:00.000Z",
+    "appleStandHoursGoal" : 12,
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurned" : 2.235999999999999,
+    "activeEnergyBurnedGoal" : 670,
+    "appleStandHours" : 0
+  }, {
+    "activeEnergyBurned" : 61.26900000000002,
+    "appleExerciseTimeGoal" : 30,
+    "appleStandHoursGoal" : 12,
+    "appleStandHours" : 2,
+    "appleExerciseTime" : 4,
+    "activeEnergyBurnedGoal" : 670,
+    "date" : "2026-05-06T15:00:00.000Z"
+  }, {
+    "appleStandHours" : 0,
+    "appleExerciseTime" : 1,
+    "appleStandHoursGoal" : 12,
+    "activeEnergyBurnedGoal" : 670,
+    "date" : "2026-05-07T15:00:00.000Z",
+    "activeEnergyBurned" : 4.7109999999999985,
+    "appleExerciseTimeGoal" : 30
+  }, {
+    "activeEnergyBurned" : 198.92399999999992,
+    "appleExerciseTime" : 28,
+    "appleStandHours" : 5,
+    "date" : "2026-05-08T15:00:00.000Z",
+    "activeEnergyBurnedGoal" : 670,
+    "appleStandHoursGoal" : 12,
+    "appleExerciseTimeGoal" : 30
+  }, {
+    "activeEnergyBurned" : 1.35,
+    "appleExerciseTime" : 1,
+    "date" : "2026-05-09T15:00:00.000Z",
+    "appleStandHoursGoal" : 12,
+    "appleStandHours" : 0,
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurnedGoal" : 670
+  }, {
+    "appleExerciseTime" : 0,
+    "activeEnergyBurned" : 0,
+    "date" : "2026-05-12T15:00:00.000Z",
+    "appleStandHoursGoal" : 12,
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurnedGoal" : 670,
+    "appleStandHours" : 0
+  }, {
+    "activeEnergyBurnedGoal" : 670,
+    "date" : "2026-05-13T15:00:00.000Z",
+    "appleExerciseTime" : 0,
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurned" : 0,
+    "appleStandHoursGoal" : 12,
+    "appleStandHours" : 0
+  }, {
+    "appleExerciseTime" : 38,
+    "appleStandHours" : 6,
+    "activeEnergyBurned" : 294.2130000000002,
+    "appleStandHoursGoal" : 12,
+    "appleExerciseTimeGoal" : 30,
+    "date" : "2026-05-14T15:00:00.000Z",
+    "activeEnergyBurnedGoal" : 670
+  }, {
+    "activeEnergyBurned" : 43.20799999999998,
+    "appleExerciseTimeGoal" : 30,
+    "date" : "2026-05-15T15:00:00.000Z",
+    "appleStandHours" : 4,
+    "appleStandHoursGoal" : 12,
+    "activeEnergyBurnedGoal" : 670,
+    "appleExerciseTime" : 6
+  }, {
+    "appleStandHours" : 1,
+    "date" : "2026-05-16T15:00:00.000Z",
+    "activeEnergyBurnedGoal" : 670,
+    "activeEnergyBurned" : 15.699999999999998,
+    "appleExerciseTime" : 0,
+    "appleExerciseTimeGoal" : 30,
+    "appleStandHoursGoal" : 12
+  }, {
+    "appleStandHours" : 0,
+    "activeEnergyBurnedGoal" : 670,
+    "date" : "2026-05-17T15:00:00.000Z",
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurned" : 0,
+    "appleExerciseTime" : 0,
+    "appleStandHoursGoal" : 12
+  }, {
+    "appleExerciseTimeGoal" : 30,
+    "appleExerciseTime" : 14,
+    "activeEnergyBurnedGoal" : 670,
+    "appleStandHours" : 6,
+    "date" : "2026-05-18T15:00:00.000Z",
+    "activeEnergyBurned" : 165.46200000000007,
+    "appleStandHoursGoal" : 12
+  }, {
+    "appleExerciseTimeGoal" : 30,
+    "activeEnergyBurnedGoal" : 670,
+    "appleExerciseTime" : 1,
+    "activeEnergyBurned" : 4.316999999999999,
+    "appleStandHours" : 0,
+    "date" : "2026-05-19T15:00:00.000Z",
+    "appleStandHoursGoal" : 12
+  }, {
+    "appleStandHoursGoal" : 12,
+    "activeEnergyBurnedGoal" : 670,
+    "activeEnergyBurned" : 0,
+    "appleExerciseTime" : 0,
+    "date" : "2026-05-23T15:00:00.000Z",
+    "appleStandHours" : 0,
+    "appleExerciseTimeGoal" : 30
+  }, {
+    "appleStandHoursGoal" : 12,
+    "appleExerciseTime" : 0,
+    "appleStandHours" : 2,
+    "activeEnergyBurnedGoal" : 670,
+    "date" : "2026-05-24T15:00:00.000Z",
+    "activeEnergyBurned" : 38.20599999999999,
+    "appleExerciseTimeGoal" : 30
+  } ],
+  "batch_index" : 0,
+  "metric" : "activity_summaries",
+  "total_batches" : 1
+}
