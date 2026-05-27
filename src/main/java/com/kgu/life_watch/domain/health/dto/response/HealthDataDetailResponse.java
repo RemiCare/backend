@@ -19,7 +19,8 @@ public record HealthDataDetailResponse(
     Long deepMinutes,
     Double activeCalories,
     Double distance,
-    Integer respiratoryRate) {
+    Integer respiratoryRate,
+    Double oxygenSaturation) {
   public static HealthDataDetailResponse from(HealthData h) {
     return new HealthDataDetailResponse(
         h.getRecordDate(),
@@ -36,11 +37,12 @@ public record HealthDataDetailResponse(
         h.getDeepMinutes(),
         h.getActiveCalories(),
         h.getDistance(),
-        h.getRespiratoryRate());
+        h.getRespiratoryRate(),
+        h.getOxygenSaturation());
   }
 
   public static HealthDataDetailResponse empty() {
     return new HealthDataDetailResponse(
-        LocalDate.now(), 0L, null, null, null, null, 0L, 0.0, 0L, 0L, 0L, 0L, 0.0, 0.0, null);
+        LocalDate.now(), 0L, null, null, null, null, 0L, 0.0, 0L, 0L, 0L, 0L, 0.0, 0.0, null, null);
   }
 }

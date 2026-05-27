@@ -66,6 +66,9 @@ public class HealthData {
   @Column(name = "respiratory_rate")
   private Integer respiratoryRate;
 
+  @Column(name = "oxygen_saturation")
+  private Double oxygenSaturation;
+
   @Column(name = "last_updated_at")
   private LocalDateTime lastUpdatedAt;
 
@@ -237,6 +240,14 @@ public class HealthData {
 
   public void setRespiratoryRate(Integer respiratoryRate) {
     this.respiratoryRate = respiratoryRate;
+  }
+
+  public Double getOxygenSaturation() {
+    return oxygenSaturation;
+  }
+
+  public void setOxygenSaturation(Double oxygenSaturation) {
+    this.oxygenSaturation = oxygenSaturation;
   }
 
   public void addSleepStageMinutes(SleepStage stage, long minutes) {

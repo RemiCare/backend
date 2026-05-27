@@ -159,25 +159,29 @@ public class AppleWatchController {
                 healthData.getSleepMinutes());
           } else if ("oxygen_saturation".equalsIgnoreCase(metric)
               || "blood_oxygen".equalsIgnoreCase(metric)) {
-            log.info(
-                "◎ [혈중산소 동기화 성공] 날짜: {}, 산소농도: {} %",
-                recordDate,
-                (valueNum.doubleValue() < 1.0
+            double spo2Val =
+                valueNum.doubleValue() < 1.0
                     ? valueNum.doubleValue() * 100
-                    : valueNum.doubleValue()));
+                    : valueNum.doubleValue();
+            healthData.setOxygenSaturation(spo2Val);
+            healthData.setLastUpdatedAt(LocalDateTime.now());
+            log.info("◎ [혈중산소 동기화 성공] 날짜: {}, 산소농도: {} %", recordDate, spo2Val);
+          } else if ("activity_summaries".equalsIgnoreCase(metric)) {
+            Number activeEnergy = (Number) sample.get("activeEnergyBurned");
+            if (activeEnergy != null) {
+              double cals = activeEnergy.doubleValue();
+              healthData.setActiveCalories(cals);
+              healthData.setLastUpdatedAt(LocalDateTime.now());
+              log.info("🔥 [활동칼로리(활동요약) 동기화 성공] 날짜: {}, 소모량: {} kcal", recordDate, cals);
+            }
           } else if ("activeEnergyBurned".equalsIgnoreCase(metric)
               || "active_energy".equalsIgnoreCase(metric)
               || "active_calories".equalsIgnoreCase(metric)
               || "activeEnergyBurnedGoal".equalsIgnoreCase(metric)) {
             double cals = valueNum.doubleValue();
-            double prevCals =
-                healthData.getActiveCalories() != null ? healthData.getActiveCalories() : 0.0;
-            healthData.setActiveCalories(prevCals + cals);
+            healthData.setActiveCalories(cals);
             healthData.setLastUpdatedAt(LocalDateTime.now());
-            log.info(
-                "🔥 [활동칼로리 동기화 성공] 날짜: {}, 소모량: {} kcal",
-                recordDate,
-                healthData.getActiveCalories());
+            log.info("🔥 [활동칼로리 동기화 성공] 날짜: {}, 소모량: {} kcal", recordDate, cals);
           } else if ("respiratory_rate".equalsIgnoreCase(metric)
               || "breath_rate".equalsIgnoreCase(metric)) {
             healthData.setRespiratoryRate(valueNum.intValue());
@@ -186,8 +190,7 @@ public class AppleWatchController {
           } else if ("distance_walking_running".equalsIgnoreCase(metric)
               || "distance".equalsIgnoreCase(metric)) {
             double dist = valueNum.doubleValue();
-            double prevDist = healthData.getDistance() != null ? healthData.getDistance() : 0.0;
-            healthData.setDistance(prevDist + dist);
+            healthData.setDistance(dist);
             healthData.setLastUpdatedAt(LocalDateTime.now());
             log.info("🛣️ [보행거리 동기화 성공] 날짜: {}, 거리: {} m", recordDate, healthData.getDistance());
           }
@@ -310,10 +313,19 @@ public class AppleWatchController {
                 || "blood_oxygen".equalsIgnoreCase(metric)) {
               Number qty = (Number) sample.get("qty");
               if (qty != null) {
-                log.info(
-                    "◎ [혈중산소 동기화 성공] 날짜: {}, 산소농도: {} %",
-                    recordDate,
-                    (qty.doubleValue() < 1.0 ? qty.doubleValue() * 100 : qty.doubleValue()));
+                double spo2Val =
+                    qty.doubleValue() < 1.0 ? qty.doubleValue() * 100 : qty.doubleValue();
+                healthData.setOxygenSaturation(spo2Val);
+                healthData.setLastUpdatedAt(LocalDateTime.now());
+                log.info("◎ [혈중산소 동기화 성공] 날짜: {}, 산소농도: {} %", recordDate, spo2Val);
+              }
+            } else if ("activity_summaries".equalsIgnoreCase(metric)) {
+              Number activeEnergy = (Number) sample.get("activeEnergyBurned");
+              if (activeEnergy != null) {
+                double cals = activeEnergy.doubleValue();
+                healthData.setActiveCalories(cals);
+                healthData.setLastUpdatedAt(LocalDateTime.now());
+                log.info("🔥 [활동칼로리(활동요약) 동기화 성공] 날짜: {}, 소모량: {} kcal", recordDate, cals);
               }
             } else if ("activeEnergyBurned".equalsIgnoreCase(metric)
                 || "active_energy".equalsIgnoreCase(metric)
@@ -322,14 +334,9 @@ public class AppleWatchController {
               Number qty = (Number) sample.get("qty");
               if (qty != null) {
                 double cals = qty.doubleValue();
-                double prevCals =
-                    healthData.getActiveCalories() != null ? healthData.getActiveCalories() : 0.0;
-                healthData.setActiveCalories(prevCals + cals);
+                healthData.setActiveCalories(cals);
                 healthData.setLastUpdatedAt(LocalDateTime.now());
-                log.info(
-                    "🔥 [활동칼로리 동기화 성공] 날짜: {}, 소모량: {} kcal",
-                    recordDate,
-                    healthData.getActiveCalories());
+                log.info("🔥 [활동칼로리 동기화 성공] 날짜: {}, 소모량: {} kcal", recordDate, cals);
               }
             } else if ("respiratory_rate".equalsIgnoreCase(metric)
                 || "breath_rate".equalsIgnoreCase(metric)) {
@@ -344,8 +351,7 @@ public class AppleWatchController {
               Number qty = (Number) sample.get("qty");
               if (qty != null) {
                 double dist = qty.doubleValue();
-                double prevDist = healthData.getDistance() != null ? healthData.getDistance() : 0.0;
-                healthData.setDistance(prevDist + dist);
+                healthData.setDistance(dist);
                 healthData.setLastUpdatedAt(LocalDateTime.now());
                 log.info(
                     "🛣️ [보행거리 동기화 성공] 날짜: {}, 거리: {} m", recordDate, healthData.getDistance());
