@@ -78,19 +78,6 @@ Kubernetes 배포 매니페스트는 `k8s/` 디렉토리에 있습니다.
 kubectl apply -f k8s/
 ```
 
-<br>
-
-## 담당 영역
-
-> 본인이 직접 구현한 부분입니다.
-
-- **웨어러블 기기 연결 상태 관리 API** — Spring Boot · JPA · MySQL
-- **복약 일정 관리 CRUD API** — 등록·조회·수정·삭제 엔드포인트 및 관련 에러코드 설계
-
-<br>
-
----
-
 ## 📠 Convention
 
 ### 🤝 Branch Naming Convention
